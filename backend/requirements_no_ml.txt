@@ -1,0 +1,24 @@
+# Core Framework - Compatible versions
+Flask==2.2.5
+Werkzeug==2.3.7
+Flask-CORS==3.0.10
+Flask-SQLAlchemy==2.5.1
+Flask-Migrate==4.0.4
+Flask-Login==0.6.2
+Flask-WTF==1.1.1
+
+# Database - Compatible versions
+pg8000==1.31.5
+SQLAlchemy==1.4.49
+
+# Security
+bcrypt==4.0.1
+python-dotenv==1.0.0
+email-validator==2.0.0
+
+# HTTP & Utilities
+requests==2.31.0
+beautifulsoup4==4.12.2
+feedparser==6.0.10
+python-dateutil==2.8.2
+gunicorn==21.2.0

@@ -1,0 +1,25 @@
+    {
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#464F0E",
+    "titleBar.activeBackground": "#626F13",
+    "titleBar.activeForeground": "#F9FBEA",
+    "titleBar.inactiveBackground": "#464F0E",
+    "titleBar.inactiveForeground": "#F9FBEA",
+    "statusBar.background": "#464F0E",
+    "statusBar.foreground": "#F9FBEA",
+    "statusBar.debuggingBackground": "#464F0E",
+    "statusBar.debuggingForeground": "#F9FBEA",
+    "statusBar.noFolderBackground": "#464F0E",
+    "statusBar.noFolderForeground": "#F9FBEA"
+  },
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}

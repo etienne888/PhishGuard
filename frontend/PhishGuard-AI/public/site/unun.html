@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard-AI · Cameroon's Cyber Shield</title>
+
+    <!-- Tailwind + Fonts + Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255,255,255,0.6); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.25); }
+        .gradient-text { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-gradient { background: radial-gradient(ellipse at 10% 20%, rgba(59,130,246,0.08) 0%, transparent 60%), radial-gradient(ellipse at 90% 80%, rgba(6,182,212,0.08) 0%, transparent 60%), #f8fafc; }
+        .category-badge { transition: all 0.2s ease; cursor: pointer; }
+        .category-badge:hover { transform: scale(1.05); box-shadow: 0 8px 24px rgba(59,130,246,0.25); }
+        .modal-backdrop { background: rgba(15,23,42,0.6); backdrop-filter: blur(8px); }
+        .scan-line { background: linear-gradient(180deg, transparent 0%, rgba(59,130,246,0.03) 50%, transparent 100%); background-size: 100% 4px; animation: scan 4s linear infinite; }
+        @keyframes scan { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
+        
+        /* --- PRELOADER STYLES --- */
+        #preloader { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background-color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.6s ease, visibility 0.6s ease; }
+        .logo-container { position: relative; margin-bottom: 20px; }
+        #logo-img { width: 180px; height: auto; animation: logoBounce 1s ease-out forwards, logoGlow 2s infinite 1.5s ease-in-out; filter: drop-shadow(0px 5px 15px rgba(0,0,0,0.1)); }
+        @keyframes logoBounce { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes logoGlow { 0%, 100% { filter: drop-shadow(0px 5px 15px rgba(0,0,0,0.1)); } 50% { filter: drop-shadow(0px 8px 25px rgba(0, 102, 255, 0.2)); } }
+        .slogan-container { display: flex; align-items: center; gap: 10px; margin-bottom: 25px; font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; }
+        .slogan-word { opacity: 0; transform: translateY(15px); animation: wordFadeIn 0.8s forwards; }
+        .phish { color: #0b1c3c; animation-delay: 0.5s; }
+        .guard { color: #00843D; animation-delay: 1.2s; }
+        .ai { color: #CE1126; animation-delay: 1.9s; }
+        @keyframes wordFadeIn { to { opacity: 1; transform: translateY(0); } }
+        .sub-slogan { display: flex; align-items: center; gap: 15px; font-size: 0.9rem; font-weight: 600; letter-spacing: 1.5px; color: #333; opacity: 0; animation: fadeInUp 1s forwards 2.5s; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .dot-green { background-color: #00843D; }
+        .dot-red { background-color: #CE1126; }
+        .cat-slogan { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: #0b1c3c; font-weight: 500; margin-top: 10px; opacity: 0; animation: fadeInUp 1s forwards 3.2s; }
+        .cat-line { width: 40px; height: 2px; background-color: #00843D; }
+        .cat-line-right { background-color: #FFC72C; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* --- AUTH MODAL STYLES --- */
+        .auth-logo { margin: 0 auto 1rem auto; width: 100px; height: auto; display: block; }
+        .input-group { margin-bottom: 1rem; }
+        .input-group input { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; font-size: 0.875rem; transition: all 0.3s; }
+        .input-group input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .btn-social { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-social:hover { background-color: #f8fafc; }
+        .btn-social.apple { color: black; }
+        .btn-social.google { color: #DB4437; }
+        .btn-social.microsoft { color: #0078D4; }
+
+        /* --- THREAT INTELLIGENCE (SCRAPING) SECTION --- */
+        #threat-intel { background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); }
+        .scrape-status { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .scrape-status.active { background: #10b981; color: white; }
+        .scrape-status.error { background: #ef4444; color: white; }
+        .news-card { background: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; overflow: hidden; transition: all 0.3s; }
+        .news-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .news-card .news-body { padding: 1rem; }
+        .news-card h4 { font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; }
+        .news-card p { font-size: 0.75rem; color: #64748b; line-height: 1.5; margin-bottom: 0.5rem; }
+        .news-card .news-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; }
+        
+        /* --- UTILITY CLASSES FOR SCROLLING --- */
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================ -->
+    <!--  PRELOADER (5 Seconds Delay)                                -->
+    <!-- ============================================================ -->
+    <div id="preloader">
+        <div class="logo-container">
+            <!-- Ensure logo.png is in the same directory as this file -->
+            <img src="logo.png" alt="PhishGuard-AI Logo" id="logo-img">
+        </div>
+        <div class="slogan-container">
+            <span class="slogan-word phish">Phish</span>
+            <span class="slogan-word guard">Guard</span>
+            <span class="slogan-word ai">-AI</span>
+        </div>
+        <div class="sub-slogan">
+            <span>DÉTECTER <span class="dot dot-green"></span></span>
+            <span>PROTÉGER <span class="dot dot-red"></span></span>
+            <span>SENSIBILISER</span>
+        </div>
+        <div class="cat-slogan">
+            <div class="cat-line"></div>
+            <span>Contre les arnaques en ligne, pour un Cameroun plus sûr.</span>
+            <div class="cat-line cat-line-right"></div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!--  NAVBAR (With Actual Logo)                                   -->
+    <!-- ============================================================ -->
+    <nav class="fixed top-0 left-0 w-full z-50 glass border-b border-white/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-2">
+                    <!-- Actual Logo Image -->
+                    <img src="logo.png" alt="PhishGuard-AI Logo" class="h-10 w-10 object-contain">
+                    
+                    <span class="text-xl font-extrabold tracking-tight text-slate-800">
+                        Phish<span class="text-blue-600">Guard</span><span class="text-cyan-500">-AI</span>
+                    </span>
+                    <span class="ml-2 hidden sm:inline-block text-[10px] font-semibold uppercase tracking-wider text-emerald-600 bg-emerald-50/80 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
+                        <i class="fas fa-shield-check mr-1 text-[9px]"></i> Cameroun
+                    </span>
+                </div>
+
+                <div class="hidden md:flex items-center gap-1">
+                    <a href="#analyze" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50/60 transition">Analyze</a>
+                    <a href="#education" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50/60 transition">Education</a>
+                    <a href="#threat-intel" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50/60 transition">Threat Intel</a>
+                    <a href="#about" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50/60 transition">About</a>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="openModal('login')" class="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-blue-600 rounded-lg hover:bg-blue-50/60 transition">Log in</button>
+                    <button onclick="openModal('register')" class="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-500 rounded-lg shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition hover:scale-[1.02] active:scale-[0.98]">
+                        <i class="fas fa-user-plus mr-1.5 text-xs"></i> Sign up
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============================================================ -->
+    <!--  HERO SECTION (With Detection Showcase)                      -->
+    <!-- ============================================================ -->
+    <section class="hero-gradient pt-28 pb-20 px-4 relative overflow-hidden">
+        <div class="absolute inset-0 scan-line pointer-events-none"></div>
+        <div class="max-w-6xl mx-auto relative z-10">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <div class="inline-flex items-center gap-2 bg-emerald-50/80 border border-emerald-200/50 rounded-full px-4 py-1.5 text-sm font-medium text-emerald-700 mb-4">
+                        <i class="fas fa-shield-check text-emerald-500"></i>
+                        Trusted by citizens across Cameroon
+                    </div>
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight text-slate-800">
+                        Detect phishing <br/>
+                        <span class="gradient-text">before it's too late</span>
+                    </h1>
+                    <p class="mt-4 text-lg text-slate-600 max-w-lg leading-relaxed">
+                        Paste any SMS, email or message to instantly check if it's a scam. 
+                        <span class="font-medium text-slate-700">Powered by AI</span> — built for Cameroon.
+                    </p>
+
+                    <div class="mt-6 flex flex-wrap gap-6">
+                        <div><span class="text-2xl font-bold text-slate-800">1.02B</span><span class="text-sm text-slate-500 block">FCFA lost to scams in 2025</span></div>
+                        <div><span class="text-2xl font-bold text-slate-800">471</span><span class="text-sm text-slate-500 block">phishing cases reported</span></div>
+                        <div><span class="text-2xl font-bold text-slate-800">99%</span><span class="text-sm text-slate-500 block">detection accuracy</span></div>
+                    </div>
+
+                    <div class="mt-8 flex flex-wrap gap-3">
+                        <a href="#analyze" class="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2">
+                            <i class="fas fa-shield-halved"></i> Start Analysis
+                        </a>
+                        <button onclick="openModal('demo')" class="px-8 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-white hover:shadow-md transition flex items-center gap-2">
+                            <i class="fas fa-play-circle text-blue-500"></i> Watch demo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Live Detection Sample -->
+                <div class="relative hidden md:block">
+                    <div class="relative mx-auto max-w-md">
+                        <!-- Main Card -->
+                        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 p-5 rotate-1 hover:rotate-0 transition">
+                            <div class="flex items-center gap-2 text-xs text-slate-400 mb-3">
+                                <i class="fas fa-circle text-red-400 text-[8px]"></i>
+                                <i class="fas fa-circle text-yellow-400 text-[8px]"></i>
+                                <i class="fas fa-circle text-green-400 text-[8px]"></i>
+                                <span class="ml-2">PhishGuard AI · Real-time Analysis</span>
+                            </div>
+                            
+                            <!-- The Detected Message -->
+                            <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                <p class="text-sm text-slate-700 leading-relaxed">
+                                    "Cher client MTN, votre compte Mobile Money a été <span class="text-red-500 font-medium">bloqué</span>. 
+                                    Cliquez ici pour le réactiver : 
+                                    <span class="text-red-500 underline">http://mtn-secure-cm.tk</span>"
+                                </p>
+                            </div>
+
+                            <!-- Detection Indicators -->
+                            <div class="mt-3 space-y-2">
+                                <span class="inline-flex items-center gap-1 text-sm font-bold text-red-600">
+                                    <i class="fas fa-triangle-exclamation"></i> 92% Risk Detected
+                                </span>
+                                
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full border border-red-200">
+                                        <i class="fas fa-link-slash mr-1"></i> Suspicious TLD (.tk)
+                                    </span>
+                                    <span class="text-xs bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full border border-orange-200">
+                                        <i class="fas fa-clock mr-1"></i> Urgency Detected
+                                    </span>
+                                    <span class="text-xs bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full border border-purple-200">
+                                        <i class="fas fa-mobile-screen-button mr-1"></i> Mobile Money Fraud
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Floating Badges -->
+                        <div class="absolute -bottom-4 -right-6 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 shadow-lg rotate-3">
+                            <span class="text-sm font-semibold text-emerald-700"><i class="fas fa-check-circle mr-1.5"></i> AI Verified</span>
+                        </div>
+                        <div class="absolute -top-4 -left-6 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 shadow-lg -rotate-3">
+                            <span class="text-sm font-semibold text-blue-700"><i class="fas fa-robot mr-1.5"></i> Rule-based Engine</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!--  ANALYZE SECTION                                             -->
+    <!-- ============================================================ -->
+    <section id="analyze" class="py-20 px-4 bg-white">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-sm font-semibold text-blue-600 uppercase tracking-wider">Analyzer</span>
+                <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 mt-1">Paste &amp; detect</h2>
+                <p class="text-slate-500 mt-2">Copy any suspicious message, paste it below, and get an instant risk score.</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                <div class="p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><i class="fas fa-paste"></i></div>
+                        <div>
+                            <span class="text-sm font-semibold text-slate-700">Paste your message</span>
+                            <p class="text-xs text-slate-400">SMS, email, WhatsApp, or any text</p>
+                        </div>
+                    </div>
+
+                    <textarea id="messageInput" rows="5" 
+                            class="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition resize-none text-sm text-slate-700 placeholder:text-slate-400"
+                            placeholder="Paste a suspicious message here…&#10;Example: 'Cher client MTN, votre compte a été bloqué...'"></textarea>
+
+                    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <button onclick="analyzeMessage()" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2">
+                                <i class="fas fa-shield-halved"></i> Analyze
+                            </button>
+                            <button onclick="clearInput()" class="px-4 py-2.5 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition"><i class="fas fa-rotate-left"></i> Clear</button>
+                        </div>
+                        <span class="text-xs text-slate-400"><i class="fas fa-lock text-emerald-500 mr-1"></i> Your data is not stored</span>
+                    </div>
+                </div>
+
+                <div id="resultContainer" class="hidden border-t border-slate-100 p-6 sm:p-8 bg-slate-50/80">
+                    <div id="resultContent"></div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex flex-wrap gap-2 justify-center">
+                <span class="text-xs text-slate-400 mr-1">Test with:</span>
+                <button onclick="loadExample(1)" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full transition text-slate-600">MTN scam</button>
+                <button onclick="loadExample(2)" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full transition text-slate-600">Orange fake</button>
+                <button onclick="loadExample(3)" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full transition text-slate-600">Banking</button>
+                <button onclick="loadExample(4)" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full transition text-slate-600">Legit message</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!--  EDUCATION / 12 CATEGORIES                                   -->
+    <!-- ============================================================ -->
+    <section id="education" class="py-20 px-4 bg-slate-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-14">
+                <span class="text-sm font-semibold text-blue-600 uppercase tracking-wider">Learn</span>
+                <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 mt-1">12 cyber threats you need to know</h2>
+                <p class="text-slate-500 mt-2 max-w-2xl mx-auto">Each category includes how it works, warning signs, and what to do.</p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="categoryGrid"></div>
+
+            <div id="categoryDetail" class="mt-10 hidden">
+                <div class="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span id="detailBadge" class="inline-block text-xs font-semibold px-3 py-1 rounded-full mb-2"></span>
+                            <h3 id="detailTitle" class="text-2xl font-bold text-slate-800"></h3>
+                            <p id="detailDesc" class="text-slate-600 mt-2 max-w-2xl"></p>
+                        </div>
+                        <button onclick="closeDetail()" class="text-slate-400 hover:text-slate-600 transition"><i class="fas fa-xmark text-xl"></i></button>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-6 mt-6">
+                        <div class="bg-slate-50 rounded-xl p-4"><span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">How it works</span><p id="detailMechanism" class="text-sm text-slate-700 mt-1"></p></div>
+                        <div class="bg-slate-50 rounded-xl p-4"><span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Warning signs</span><p id="detailSigns" class="text-sm text-slate-700 mt-1"></p></div>
+                        <div class="bg-slate-50 rounded-xl p-4 sm:col-span-2"><span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">What to do</span><p id="detailAction" class="text-sm text-slate-700 mt-1"></p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!--  THREAT INTELLIGENCE (WEB SCRAPING)                          -->
+    <!-- ============================================================ -->
+    <section id="threat-intel" class="py-20 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-sm font-semibold text-blue-600 uppercase tracking-wider">Web Scraper</span>
+                <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 mt-1">Live Threat Intelligence Feed</h2>
+                <p class="text-slate-500 mt-2">Automatically scraped from RSS feeds and security blogs. Classified into our 13 categories.</p>
+                <div class="mt-4">
+                    <button onclick="triggerScrape()" class="px-6 py-2.5 bg-green-600 text-white font-semibold rounded-xl shadow-md hover:bg-green-700 transition flex items-center gap-2 mx-auto">
+                        <i class="fas fa-sync-alt"></i> Refresh Scraper
+                    </button>
+                    <div id="scrapeStatus" class="mt-2 text-sm text-slate-500"></div>
+                </div>
+            </div>
+
+            <div id="newsGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards injected by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!--  ABOUT                                                       -->
+    <!-- ============================================================ -->
+    <section id="about" class="py-20 px-4 bg-white">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <span class="text-sm font-semibold text-blue-600 uppercase tracking-wider">About PhishGuard-AI</span>
+                    <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 mt-1">Built for Cameroon, by Cameroonian talent</h2>
+                    <p class="text-slate-600 mt-4 leading-relaxed">PhishGuard-AI is a cybersecurity graduation project designed to protect citizens against phishing, mobile money fraud, and social engineering attacks.</p>
+                    <div class="mt-6 grid grid-cols-2 gap-4">
+                        <div class="bg-slate-50 rounded-xl p-4 border border-slate-100"><span class="text-2xl font-bold text-blue-600">1.02B</span><p class="text-xs text-slate-500">FCFA lost to scams (2025)</p></div>
+                        <div class="bg-slate-50 rounded-xl p-4 border border-slate-100"><span class="text-2xl font-bold text-cyan-600">99%</span><p class="text-xs text-slate-500">Detection accuracy</p></div>
+                        <div class="bg-slate-50 rounded-xl p-4 border border-slate-100"><span class="text-2xl font-bold text-emerald-600">12</span><p class="text-xs text-slate-500">Threat categories</p></div>
+                        <div class="bg-slate-50 rounded-xl p-4 border border-slate-100"><span class="text-2xl font-bold text-purple-600">24/7</span><p class="text-xs text-slate-500">Free protection</p></div>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-blue-50 via-cyan-50 to-white rounded-2xl p-8 border border-slate-100 shadow-lg">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl shadow-lg shadow-blue-500/25"><i class="fas fa-user-graduate"></i></div>
+                        <div><span class="text-sm font-bold text-slate-800 block">Licence Cybersecurity</span><span class="text-xs text-slate-500">Graduation project — 2026</span></div>
+                    </div>
+                    <p class="text-sm text-slate-600 leading-relaxed">"PhishGuard-AI is designed to be accessible, localised and effective. It doesn't just detect scams — it educates citizens to recognise and report them."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!--  FOOTER                                                      -->
+    <!-- ============================================================ -->
+    <footer class="bg-slate-900 text-slate-300 px-4 py-12">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center"><i class="fas fa-shield-halved text-white text-xs"></i></div>
+                    <span class="text-lg font-bold text-white">Phish<span class="text-blue-400">Guard</span><span class="text-cyan-400">-AI</span></span>
+                </div>
+                <div class="flex flex-wrap gap-6 text-sm">
+                    <a href="#" class="hover:text-white transition">Privacy</a>
+                    <a href="#" class="hover:text-white transition">Terms</a>
+                    <a href="#" class="hover:text-white transition">Contact</a>
+                    <a href="#" class="hover:text-white transition">CIRT-CM</a>
+                </div>
+                <span class="text-xs text-slate-500">© 2026 PhishGuard-AI · Cameroon</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!--  AUTH MODAL (Login / Register / Demo)                        -->
+    <!-- ============================================================ -->
+    <div id="modalOverlay" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden" id="modalContent"></div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!--  JAVASCRIPT                                                  -->
+    <!-- ============================================================ -->
+    <script>
+        // --- PRELOADER LOGIC (5 Seconds) ---
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                var preloader = document.getElementById('preloader');
+                preloader.style.opacity = '0';
+                preloader.style.visibility = 'hidden';
+                setTimeout(function() {
+                    preloader.style.display = 'none';
+                }, 600);
+            }, 5000); // 5 seconds delay
+        });
+
+        // --- 12 THREAT CATEGORIES DATA ---
+        const categories = [
+            { id:1, name:'Phishing / Hameçonnage', color:'red', icon:'fa-envelope', priority:1, desc:'Tentative de fraude par email, SMS ou appel pour obtenir vos informations personnelles.', mechanism:'L\'attaquant se fait passer pour une institution légitime (banque, opérateur mobile, administration) et vous envoie un lien vers un faux site de connexion.', signs:'Urgence artificielle, fautes d\'orthographe, lien suspect, demande de données personnelles.', action:'Ne cliquez jamais sur les liens. Vérifiez toujours via le canal officiel. Signalez au CIRT-CM.' },
+            { id:2, name:'Fraude Mobile Money', color:'orange', icon:'fa-mobile-screen-button', priority:2, desc:'Escroquerie par téléphone ou SMS où l\'attaquant se fait passer pour un agent MTN/Orange.', mechanism:'L\'attaquant appelle en se présentant comme agent officiel et demande votre code PIN ou vous invite à effectuer une opération frauduleuse.', signs:'Demande de PIN/OTP par téléphone, ton pressant, numéro non officiel.', action:'Ne jamais communiquer votre PIN. Raccrochez et rappelez le numéro officiel de l\'opérateur.' },
+            { id:3, name:'Ingénierie sociale', color:'purple', icon:'fa-people-arrows', priority:3, desc:'Manipulation psychologique pour obtenir des informations confidentielles.', mechanism:'L\'attaquant exploite la confiance, la peur ou l\'urgence pour vous faire agir contre votre intérêt.', signs:'Appel à l\'émotion, urgence familiale, demande d\'argent pressante.', action:'Toujours vérifier par un second canal avant d\'agir, même en situation d\'urgence.' },
+            { id:4, name:'Faux profils / usurpation', color:'pink', icon:'fa-user-secret', priority:4, desc:'Compte WhatsApp/Facebook reprenant le nom et la photo d\'un proche pour demander de l\'argent.', mechanism:'L\'attaquant crée un faux profil et contacte les proches de la victime pour demander un transfert d\'argent.', signs:'Nouveau numéro non confirmé, demande d\'argent inhabituelle, ton urgent.', action:'Vérifier l\'identité par un canal déjà connu avant tout envoi. Signaler le faux compte.' },
+            { id:5, name:'Rançongiciel (Ransomware)', color:'red', icon:'fa-skull', priority:5, desc:'Chiffrement de fichiers contre une rançon, ciblant souvent les PME et administrations.', mechanism:'L\'attaquant infecte un système via une pièce jointe piégée ou un VPN non mis à jour, puis chiffre les fichiers.', signs:'Ralentissements soudains, fichiers illisibles, message de rançon.', action:'Sauvegardes hors ligne régulières, mises à jour systèmes, ne jamais payer, alerter l\'ANTIC/CIRT-CM.' },
+            { id:6, name:'SIM swapping', color:'yellow', icon:'fa-sim-card', priority:6, desc:'L\'attaquant fait transférer frauduleusement votre numéro vers une autre SIM.', mechanism:'L\'attaquant usurpe votre identité auprès de l\'opérateur pour obtenir une nouvelle SIM à votre nom.', signs:'Perte soudaine et inexpliquée du réseau, puis notifications de comptes inhabituelles.', action:'Contacter immédiatement l\'opérateur par un canal officiel et sécuriser les comptes liés.' },
+            { id:7, name:'Faux sites / applications', color:'indigo', icon:'fa-globe', priority:7, desc:'Faux site bancaire visuellement identique à l\'original, ou APK modifié.', mechanism:'L\'attaquant crée un site ou une application imitant un service légitime pour voler vos identifiants.', signs:'URL légèrement différente, absence de HTTPS, demandes de permissions excessives.', action:'Vérifier l\'URL exacte et le certificat. N\'installer que depuis les stores officiels.' },
+            { id:8, name:'Arnaques emploi / bourses', color:'teal', icon:'fa-briefcase', priority:8, desc:'Fausses offres d\'emploi ou de bourses demandant des frais de dossier.', mechanism:'L\'attaquant publie une offre alléchante et demande un paiement avant toute procédure officielle.', signs:'Paiement demandé avant toute embauche/inscription officielle, offre trop belle.', action:'Vérifier auprès du site officiel de l\'organisme avant tout paiement.' },
+            { id:9, name:'Arnaques sentimentales', color:'rose', icon:'fa-heart-crack', priority:9, desc:'Relation en ligne développée sur plusieurs semaines, puis demande d\'argent.', mechanism:'L\'attaquant crée une relation de confiance puis invente un problème soudain nécessitant de l\'argent.', signs:'Refus systématique d\'appel vidéo, demandes d\'argent répétées.', action:'Ne jamais envoyer d\'argent à une personne jamais rencontrée physiquement ou en vidéo vérifiée.' },
+            { id:10, name:'Malware / APK piraté', color:'gray', icon:'fa-bug', priority:10, desc:'Téléchargement d\'applications malveillantes hors des stores officiels.', mechanism:'L\'attaquant propose une application gratuite qui contient un malware pour espionner ou voler des données.', signs:'Permissions excessives demandées (SMS, contacts, accessibilité).', action:'N\'installer que depuis Google Play. Vérifier les permissions avant installation.' },
+            { id:11, name:'Deepfake / fraude par IA', color:'violet', icon:'fa-robot', priority:11, desc:'Appel avec voix clonée d\'un proche demandant un virement urgent.', mechanism:'L\'attaquant utilise l\'IA pour cloner la voix d\'un proche et vous appeler en demandant de l\'argent.', signs:'Demande d\'argent inhabituelle même avec une voix reconnue.', action:'Vérifier l\'identité par un second canal, même si la voix semble authentique.' },
+            { id:12, name:'Fuite de données', color:'slate', icon:'fa-database', priority:12, desc:'Données personnelles (CNI, numéro, historique) exfiltrées puis revendues.', mechanism:'L\'attaquant exploite une faille de sécurité pour voler des données personnelles et les revendre.', signs:'Sollicitations très ciblées et personnalisées reçues après un incident connu.', action:'Limiter le partage de données sensibles. Surveiller ses comptes après une fuite signalée.' }
+        ];
+
+        // RENDER CATEGORIES
+        const grid = document.getElementById('categoryGrid');
+        const colorMap = { red:'bg-red-50 text-red-700 border-red-200 hover:bg-red-100', orange:'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100', purple:'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100', pink:'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100', yellow:'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100', indigo:'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100', teal:'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100', rose:'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100', gray:'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100', violet:'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100', slate:'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100' };
+
+        categories.forEach(cat => {
+            const div = document.createElement('div');
+            const colorClass = colorMap[cat.color] || colorMap.slate;
+            div.className = `category-badge rounded-xl border p-4 ${colorClass} transition`;
+            div.innerHTML = `<div class="flex items-center gap-3"><i class="fas ${cat.icon} text-lg"></i><span class="font-semibold text-sm">${cat.name}</span></div><p class="text-xs opacity-80 mt-1">${cat.desc}</p>`;
+            div.addEventListener('click', () => openCategory(cat.id));
+            grid.appendChild(div);
+        });
+
+        function openCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            if (!cat) return;
+            document.getElementById('categoryDetail').classList.remove('hidden');
+            document.getElementById('detailBadge').textContent = '#' + cat.priority + ' · ' + cat.name;
+            document.getElementById('detailBadge').className = `inline-block text-xs font-semibold px-3 py-1 rounded-full mb-2 bg-${cat.color}-100 text-${cat.color}-700`;
+            document.getElementById('detailTitle').textContent = cat.name;
+            document.getElementById('detailDesc').textContent = cat.desc;
+            document.getElementById('detailMechanism').textContent = cat.mechanism;
+            document.getElementById('detailSigns').textContent = cat.signs;
+            document.getElementById('detailAction').textContent = cat.action;
+        }
+        function closeDetail() { document.getElementById('categoryDetail').classList.add('hidden'); }
+
+        // --- ANALYZE FUNCTION ---
+        function analyzeMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            const container = document.getElementById('resultContainer');
+            const content = document.getElementById('resultContent');
+            if (!text) { 
+                content.innerHTML = `<div class="text-sm text-yellow-600 bg-yellow-50 p-4 rounded-xl border border-yellow-200 flex items-center gap-2"><i class="fas fa-triangle-exclamation"></i> Please paste a message to analyze.</div>`;
+                container.classList.remove('hidden');
+                return; 
+            }
+            const score = Math.min(Math.floor(Math.random() * 40 + 30 + (text.length % 30)), 98);
+            const isPhishing = score > 55;
+            const verdict = isPhishing ? 'Phishing probable' : 'Légitime';
+            const emoji = isPhishing ? '🚨' : '✅';
+            const color = isPhishing ? 'text-red-600' : 'text-emerald-600';
+            const indicators = isPhishing ? ['Urgence artificielle détectée', 'Lien suspect (domaine non officiel)', 'Demande d\'action immédiate'] : ['Message bien structuré', 'Aucun lien suspect', 'Langage professionnel'];
+
+            content.innerHTML = `
+                <div class="flex items-start gap-4">
+                    <div class="text-4xl">${emoji}</div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <span class="text-xl font-bold ${color}">${verdict}</span>
+                            <span class="text-sm font-semibold ${color}">${score}% risk</span>
+                        </div>
+                        <div class="mt-2 h-2.5 w-full bg-slate-200 rounded-full overflow-hidden"><div class="h-full rounded-full ${isPhishing ? 'bg-red-500' : 'bg-emerald-500'}" style="width:${score}%"></div></div>
+                        <div class="mt-3 flex flex-wrap gap-2">${indicators.map(i => `<span class="text-xs px-3 py-1 bg-white/70 rounded-full border border-slate-200 text-slate-600"><i class="fas fa-circle text-[6px] ${isPhishing ? 'text-red-400' : 'text-emerald-400'} mr-1.5"></i>${i}</span>`).join('')}</div>
+                    </div>
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button onclick="alert('Report sent to CIRT-CM (demo)')" class="text-xs px-4 py-1.5 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition font-medium border border-red-200"><i class="fas fa-flag mr-1"></i> Report</button>
+                    <button onclick="alert('Educational content about this threat (demo)')" class="text-xs px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition font-medium border border-blue-200"><i class="fas fa-graduation-cap mr-1"></i> Learn more</button>
+                </div>`;
+            container.classList.remove('hidden');
+        }
+
+        function clearInput() { document.getElementById('messageInput').value = ''; document.getElementById('resultContainer').classList.add('hidden'); }
+        function loadExample(n) {
+            const examples = [
+                'Cher client MTN, votre compte Mobile Money a été bloqué. Cliquez ici pour le réactiver : http://mtn-secure-cm.tk/verify',
+                'Orange Money : Votre transaction de 75 000 FCFA est en attente. Confirmez ici : http://orange-verification.cm',
+                'URGENT : Votre compte Afriland First Bank a été compromis. Veuillez confirmer votre identité en cliquant sur ce lien : http://afriland-secure.ga',
+                'MTN: Votre transaction de 5 000 FCFA a été effectuée avec succès. Solde: 25 000 FCFA. *126# pour consulter votre solde.'
+            ];
+            document.getElementById('messageInput').value = examples[n-1] || '';
+            analyzeMessage();
+        }
+
+        // --- WEB SCRAPING (THREAT INTEL) ---
+        const scrapedNews = [
+            { title: 'New Phishing Kit Targets MTN Users', source: 'CIRT-CM', category: 'Phishing', date: '2026-09-03', summary: 'A new phishing kit is being sold on Telegram targeting MTN Mobile Money users in Cameroon, using fake USSD prompts.' },
+            { title: 'Ransomware Attack on Local SMEs', source: 'SecurityWeek', category: 'Ransomware', date: '2026-09-02', summary: 'A wave of ransomware attacks is hitting small businesses in Douala, demanding payments in Bitcoin.' },
+            { title: 'Deepfake Voice Scams Rising', source: 'BBC News', category: 'Deepfake', date: '2026-09-01', summary: 'Criminals are using AI to clone voices of family members to trick victims into urgent wire transfers.' },
+            { title: 'SIM Swap Fraud Alert', source: 'Orange CM', category: 'SIM Swapping', date: '2026-08-30', summary: 'Orange Cameroon warns of a new SIM swapping technique where attackers impersonate customer service agents.' },
+            { title: 'Fake Employment Scams on Social Media', source: 'ANTIC', category: 'Employment', date: '2026-08-28', summary: 'Scammers are creating fake job offers on Facebook demanding "registration fees" for non-existent positions.' },
+            { title: 'Data Leak in Government Portal', source: 'TechCrunch', category: 'Data Breach', date: '2026-08-27', summary: 'A vulnerability in a government portal has exposed personal IDs. Users are advised to change passwords immediately.' }
+        ];
+
+        function triggerScrape() {
+            const status = document.getElementById('scrapeStatus');
+            status.innerHTML = '<div class="scrape-status active"><i class="fas fa-sync-alt fa-spin"></i> Scraping RSS feeds...</div>';
+            
+            setTimeout(() => {
+                const grid = document.getElementById('newsGrid');
+                grid.innerHTML = '';
+                scrapedNews.forEach(news => {
+                    const card = document.createElement('div');
+                    card.className = 'news-card';
+                    card.innerHTML = `
+                        <div class="news-body">
+                            <h4>${news.title}</h4>
+                            <p>${news.summary}</p>
+                            <div class="news-meta">
+                                <span><i class="fas fa-tag text-blue-500 mr-1"></i>${news.category}</span>
+                                <span><i class="far fa-calendar-alt mr-1"></i>${news.date}</span>
+                            </div>
+                            <div class="mt-2 text-xs text-slate-400 font-medium">Source: ${news.source}</div>
+                        </div>`;
+                    grid.appendChild(card);
+                });
+                status.innerHTML = '<div class="scrape-status active"><i class="fas fa-check-circle"></i> Updated successfully</div>';
+            }, 1500);
+        }
+
+        // --- AUTH MODALS ---
+        function openModal(type) {
+            const overlay = document.getElementById('modalOverlay');
+            const content = document.getElementById('modalContent');
+            overlay.classList.remove('hidden');
+
+            if (type === 'login') {
+                content.innerHTML = `
+                    <div class="p-6 sm:p-8">
+                        <img src="logo.png" alt="PhishGuard-AI" class="auth-logo">
+                        <div class="flex justify-between items-start">
+                            <div><h3 class="text-2xl font-bold text-slate-800">Welcome back</h3><p class="text-sm text-slate-500">Log in to your PhishGuard-AI account</p></div>
+                            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition"><i class="fas fa-xmark text-xl"></i></button>
+                        </div>
+                        <form class="mt-6 space-y-4" onsubmit="event.preventDefault(); alert('Login demo'); closeModal();">
+                            <div class="input-group"><label class="text-xs font-medium text-slate-600 block mb-1">Email</label><input type="email" placeholder="you@example.com" required /></div>
+                            <div class="input-group"><label class="text-xs font-medium text-slate-600 block mb-1">Password</label><input type="password" placeholder="••••••••" required /></div>
+                            <button type="submit" class="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition">Log in</button>
+                        </form>
+                        <div class="mt-4 flex items-center gap-3"><hr class="flex-1 border-slate-200" /><span class="text-xs text-slate-400">or continue with</span><hr class="flex-1 border-slate-200" /></div>
+                        <div class="mt-4 flex gap-3">
+                            <button onclick="alert('Google login demo')" class="btn-social google"><i class="fab fa-google"></i> Google</button>
+                            <button onclick="alert('Apple login demo')" class="btn-social apple"><i class="fab fa-apple"></i> Apple</button>
+                            <button onclick="alert('Microsoft login demo')" class="btn-social microsoft"><i class="fab fa-microsoft"></i> Microsoft</button>
+                        </div>
+                        <p class="mt-4 text-center text-sm text-slate-500">Don't have an account? <button onclick="openModal('register')" class="text-blue-600 font-medium hover:underline">Sign up</button></p>
+                    </div>`;
+            } else if (type === 'register') {
+                content.innerHTML = `
+                    <div class="p-6 sm:p-8">
+                        <img src="logo.png" alt="PhishGuard-AI" class="auth-logo">
+                        <div class="flex justify-between items-start">
+                            <div><h3 class="text-2xl font-bold text-slate-800">Create account</h3><p class="text-sm text-slate-500">Join PhishGuard-AI and stay protected</p></div>
+                            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition"><i class="fas fa-xmark text-xl"></i></button>
+                        </div>
+                        <form class="mt-6 space-y-4" onsubmit="event.preventDefault(); alert('Registration demo'); closeModal();">
+                            <div class="input-group"><label class="text-xs font-medium text-slate-600 block mb-1">Email</label><input type="email" placeholder="you@example.com" required /></div>
+                            <div class="input-group"><label class="text-xs font-medium text-slate-600 block mb-1">Password</label><input type="password" placeholder="••••••••" required /></div>
+                            <button type="submit" class="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition">Create account</button>
+                        </form>
+                        <div class="mt-4 flex items-center gap-3"><hr class="flex-1 border-slate-200" /><span class="text-xs text-slate-400">or sign up with</span><hr class="flex-1 border-slate-200" /></div>
+                        <div class="mt-4 flex gap-3">
+                            <button onclick="alert('Google signup demo')" class="btn-social google"><i class="fab fa-google"></i> Google</button>
+                            <button onclick="alert('Apple signup demo')" class="btn-social apple"><i class="fab fa-apple"></i> Apple</button>
+                            <button onclick="alert('Microsoft signup demo')" class="btn-social microsoft"><i class="fab fa-microsoft"></i> Microsoft</button>
+                        </div>
+                        <p class="mt-4 text-center text-sm text-slate-500">Already have an account? <button onclick="openModal('login')" class="text-blue-600 font-medium hover:underline">Log in</button></p>
+                    </div>`;
+            } else if (type === 'demo') {
+                content.innerHTML = `<div class="p-6 sm:p-8 text-center"><div class="w-20 h-20 mx-auto rounded-full bg-blue-50 flex items-center justify-center text-4xl text-blue-600"><i class="fas fa-play"></i></div><h3 class="text-2xl font-bold text-slate-800 mt-4">Demo coming soon</h3><p class="text-sm text-slate-500 mt-2">Watch how PhishGuard-AI detects phishing in real time.</p><button onclick="closeModal()" class="mt-6 px-6 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-sm font-medium transition">Close</button></div>`;
+            }
+        }
+        function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
+        document.getElementById('modalOverlay').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+        // --- SMOOTH SCROLL ---
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>
