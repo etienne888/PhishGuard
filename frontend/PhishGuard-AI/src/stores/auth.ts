@@ -32,8 +32,11 @@ export const useAuthStore = defineStore('auth', () => {
       if (!result.user) throw new Error('Login response did not include a user')
       user.value = result.user
       closeModal()
-    } catch {
-      error.value = 'Identifiants invalides. Vérifiez votre email et mot de passe.'
+    } catch (err) {
+      error.value =
+        err instanceof Error && err.message === 'Email verification required'
+          ? 'Vérifiez votre adresse email avant de vous connecter.'
+          : 'Identifiants invalides. Vérifiez votre email et mot de passe.'
     } finally {
       isSubmitting.value = false
     }
@@ -53,13 +56,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(payload: RegisterPayload) {
+  async function register(payload: RegisterPayload): Promise<boolean> {
     isSubmitting.value = true
     error.value = null
     try {
-      user.value = await authService.register(payload)
-    } catch {
-      error.value = 'Impossible de créer le compte. Réessayez.'
+      await authService.register(payload)
+      return true
+    } catch (err) {
+      const message = err instanceof Error ? err.message : ''
+      error.value =
+        message === 'Email already registered'
+          ? 'Cette adresse email est déjà enregistrée.'
+          : message === 'Unable to send verification email'
+            ? "Le compte n'a pas pu être vérifié par email. Réessayez plus tard."
+            : 'Impossible de créer le compte. Réessayez.'
+      return false
     } finally {
       isSubmitting.value = false
     }

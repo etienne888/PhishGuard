@@ -240,15 +240,18 @@ function validateForm(): boolean {
 async function submitRegister() {
   if (!validateForm()) return;
   isSubmitting.value = true;
-  await authStore.register({
+  const registered = await authStore.register({
     email: form.email,
     password: form.password,
     confirmPassword: form.confirmPassword,
   });
   isSubmitting.value = false;
-  if (!authStore.error && authStore.user) {
+  if (registered && !authStore.error) {
     emit("close");
-    await router.push({ name: "dashboard" });
+    await router.push({
+      name: "home",
+      query: { auth: "login", registered: "true", email: form.email },
+    });
   }
 }
 

@@ -7,8 +7,8 @@ interface LoginResponse {
 }
 
 interface RegisterResponse {
-  user_id: string | number
-  user?: AuthUser
+  requires_verification: boolean
+  message: string
 }
 
 export const authService = {
@@ -38,9 +38,12 @@ export const authService = {
     await api.post('/auth/mfa/disable')
   },
 
-  async register(payload: RegisterPayload): Promise<AuthUser> {
-    const response = await api.post<RegisterResponse>('/auth/register', payload)
-    return response.user ?? { id: String(response.user_id), email: payload.email }
+  async register(payload: RegisterPayload): Promise<RegisterResponse> {
+    return api.post<RegisterResponse>('/auth/register', payload)
+  },
+
+  async verifyEmail(email: string, token: string): Promise<void> {
+    await api.post('/verification/verify-email', { email, token })
   },
 
   async logout(): Promise<void> {

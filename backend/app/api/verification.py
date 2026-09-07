@@ -2,6 +2,7 @@
 Verification Routes (Email Code)
 """
 
+import secrets
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_user
 from app import db
@@ -10,6 +11,51 @@ from app.services.verification_service import VerificationService
 
 verification_bp = Blueprint('verification', __name__)
 verification_service = VerificationService()
+
+
+@verification_bp.route('/verify-email', methods=['POST'])
+def verify_email():
+    """Verify a newly registered email using a one-time link token."""
+    try:
+        data = request.get_json() or {}
+        email = (data.get('email') or '').strip().lower()
+        token = data.get('token') or ''
+        if not email or not token:
+            return jsonify({'error': 'Verification link is invalid'}), 400
+
+        if not verification_service.verify_challenge(email, 'email_link', token):
+            return jsonify({'error': 'Verification link is invalid or expired'}), 400
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({'error': 'Verification link is invalid'}), 400
+
+        user.email_verified = True
+        db.session.commit()
+        return jsonify({'message': 'Email verified successfully'}), 200
+    except Exception:
+        current_app.logger.exception('Email link verification failed')
+        return jsonify({'error': 'Verification failed'}), 500
+
+
+@verification_bp.route('/send-email-link', methods=['POST'])
+def send_email_link():
+    """Create and send a one-time verification link for an existing user."""
+    try:
+        data = request.get_json() or {}
+        email = (data.get('email') or '').strip().lower()
+        user = User.query.filter_by(email=email).first() if email else None
+        if not user or user.email_verified:
+            return jsonify({'message': 'If verification is required, a link has been sent.'}), 200
+
+        token = secrets.token_urlsafe(32)
+        verification_service.create_challenge(email, 'email_link', token)
+        if not verification_service.send_verification_link(email, token):
+            return jsonify({'error': 'Unable to send verification email'}), 502
+        return jsonify({'message': 'Verification link sent', 'expires_in': 300}), 200
+    except Exception:
+        current_app.logger.exception('Email link send failed')
+        return jsonify({'error': 'Unable to send verification email'}), 500
 
 
 @verification_bp.route('/send-email-code', methods=['POST'])

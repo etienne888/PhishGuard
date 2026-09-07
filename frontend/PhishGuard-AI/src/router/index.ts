@@ -26,6 +26,11 @@ const router = createRouter({
       component: () => import('@/views/user/SecurityView.vue')
     },
     {
+      path: '/verify-email',
+      name: 'verify-email',
+      component: () => import('@/views/VerifyEmailView.vue')
+    },
+    {
       path: '/admin',
       name: 'admin',
       meta: { requiresAuth: true, requiresAdmin: true },

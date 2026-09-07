@@ -12,7 +12,7 @@ const isHidden = ref(false);
 const prefersReducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
-const HOLD_MS = prefersReducedMotion ? 200 : 700;
+const HOLD_MS = prefersReducedMotion ? 200 : 2000;
 
 onMounted(() => {
   window.setTimeout(() => {

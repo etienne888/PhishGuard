@@ -19,8 +19,8 @@ class VerificationService:
     def generate_code(self) -> str:
         return f"{secrets.randbelow(1_000_000):06d}"
 
-    def create_challenge(self, destination: str, channel: str) -> str:
-        code = self.generate_code()
+    def create_challenge(self, destination: str, channel: str, value: str | None = None) -> str:
+        code = value or self.generate_code()
         VerificationChallenge.query.filter_by(
             destination=destination,
             channel=channel,
@@ -72,6 +72,33 @@ class VerificationService:
                 smtp.send_message(message)
             return True
         logger.info("Development email code for %s: %s", email, code)
+        return True
+
+    def send_verification_link(self, email: str, token: str) -> bool:
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
+        link = f'{frontend_url}/verify-email?email={email}&token={token}'
+        host = os.getenv('SMTP_HOST')
+        sender = os.getenv('SMTP_FROM')
+        if host and sender:
+            message = EmailMessage()
+            message['Subject'] = 'Vérifiez votre adresse email PhishGuard-AI'
+            message['From'] = sender
+            message['To'] = email
+            message.set_content(
+                f'Cliquez sur ce lien pour vérifier votre adresse email :\n\n{link}\n\n'
+                'Ce lien expire dans 5 minutes. Si vous n’avez pas créé ce compte, '
+                'ignorez cet email.'
+            )
+            with smtplib.SMTP(host, int(os.getenv('SMTP_PORT', '587')), timeout=10) as smtp:
+                if os.getenv('SMTP_USE_TLS', 'true').lower() == 'true':
+                    smtp.starttls()
+                username = os.getenv('SMTP_USERNAME')
+                password = os.getenv('SMTP_PASSWORD')
+                if username and password:
+                    smtp.login(username, password)
+                smtp.send_message(message)
+            return True
+        logger.info("Development verification link for %s: %s", email, link)
         return True
 
     def send_welcome_email(self, email: str) -> bool:

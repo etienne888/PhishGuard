@@ -13,6 +13,10 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 onMounted(async () => {
+  if (route.query.auth === "login") {
+    authStore.openModal("login");
+  }
+
   const code = typeof route.query.code === "string" ? route.query.code : null;
   if (!code) return;
   try {

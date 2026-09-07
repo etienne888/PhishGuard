@@ -4,18 +4,21 @@ from flask import Blueprint, request, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models import User
+from app.services.verification_service import VerificationService
 import bcrypt
 import pyotp
+import secrets
 from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__)
+verification_service = VerificationService()
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
     """Register a new user"""
     try:
         data = request.get_json()
-        email = data.get('email')
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password')
         confirm_password = data.get('confirmPassword')
         
@@ -43,16 +46,16 @@ def register():
         
         db.session.add(user)
         db.session.commit()
-        login_user(user)
+        token = secrets.token_urlsafe(32)
+        verification_service.create_challenge(user.email, 'email_link', token)
+        if not verification_service.send_verification_link(user.email, token):
+            db.session.delete(user)
+            db.session.commit()
+            return jsonify({'error': 'Unable to send verification email'}), 502
         
         return jsonify({
-            'message': 'User registered successfully',
-            'user_id': user.id,
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'is_admin': user.is_admin,
-            }
+            'message': 'Registration successful. Check your email to verify your account.',
+            'requires_verification': True,
         }), 201
         
     except Exception as e:
@@ -63,7 +66,7 @@ def login():
     """Login user"""
     try:
         data = request.get_json()
-        email = data.get('email')
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password')
         
         if not email or not password:
@@ -73,6 +76,12 @@ def login():
         
         if not user:
             return jsonify({'error': 'Invalid credentials'}), 401
+
+        if not user.email_verified:
+            return jsonify({
+                'error': 'Email verification required',
+                'requires_verification': True,
+            }), 403
         
         # Check if account is locked
         if user.locked_until and user.locked_until > datetime.utcnow():
