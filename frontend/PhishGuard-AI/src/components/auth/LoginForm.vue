@@ -6,7 +6,7 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <div class="flex items-center gap-3 mb-1">
-          <divz
+          <div
             class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25"
           >
             <i class="fas fa-shield-halved text-white text-sm"></i>
