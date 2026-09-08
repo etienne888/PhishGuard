@@ -6,7 +6,7 @@ interface RequestOptions extends RequestInit {
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { params, headers, ...rest } = options
-  const url = new URL(`${BASE_URL}${path}`)
+  const url = new URL(`${BASE_URL}${path}`, window.location.origin)
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {

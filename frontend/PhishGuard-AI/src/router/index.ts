@@ -32,9 +32,17 @@ const router = createRouter({
     },
     {
       path: '/admin',
-      name: 'admin',
       meta: { requiresAuth: true, requiresAdmin: true },
-      component: () => import('@/views/admin/AdminView.vue')
+      component: () => import('@/views/admin/AdminLayout.vue'),
+      children: [
+        { path: '', name: 'admin-overview', component: () => import('@/views/admin/Overview.vue') },
+        { path: 'users', name: 'admin-users', component: () => import('@/views/admin/UserManagement.vue') },
+        { path: 'reports', name: 'admin-reports', component: () => import('@/views/admin/ThreatReports.vue') },
+        { path: 'threat-intel', name: 'admin-threat-intel', component: () => import('@/views/admin/ThreatIntelligence.vue') },
+        { path: 'models', name: 'admin-models', component: () => import('@/views/admin/MLModelManagement.vue') },
+        { path: 'audit', name: 'admin-audit', component: () => import('@/views/admin/AuditLog.vue') },
+        { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/Settings.vue') }
+      ]
     }
   ]
 })

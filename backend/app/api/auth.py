@@ -17,7 +17,7 @@ verification_service = VerificationService()
 def register():
     """Register a new user"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         email = (data.get('email') or '').strip().lower()
         password = data.get('password')
         confirm_password = data.get('confirmPassword')
@@ -29,7 +29,21 @@ def register():
             return jsonify({'error': 'Passwords do not match'}), 400
         
         # Check if user exists
-        if User.query.filter_by(email=email).first():
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user and not existing_user.email_verified:
+            token = secrets.token_urlsafe(32)
+            verification_service.create_challenge(email, 'email_link', token)
+            email_sent = verification_service.send_verification_link(email, token)
+            return jsonify({
+                'message': (
+                    'Verification link sent. Check your email to verify your account.'
+                    if email_sent else
+                    'Account already exists. Verification email will be available when delivery recovers.'
+                ),
+                'requires_verification': True,
+                'verification_email_sent': email_sent,
+            }), 200
+        if existing_user:
             return jsonify({'error': 'Email already registered'}), 400
         if phone and User.query.filter_by(phone_number=phone).first():
             return jsonify({'error': 'Phone number already registered'}), 400
@@ -52,14 +66,16 @@ def register():
         db.session.commit()
         token = secrets.token_urlsafe(32)
         verification_service.create_challenge(user.email, 'email_link', token)
-        if not verification_service.send_verification_link(user.email, token):
-            db.session.delete(user)
-            db.session.commit()
-            return jsonify({'error': 'Unable to send verification email'}), 502
+        email_sent = verification_service.send_verification_link(user.email, token)
         
         return jsonify({
-            'message': 'Registration successful. Check your email to verify your account.',
+            'message': (
+                'Registration successful. Check your email to verify your account.'
+                if email_sent else
+                'Account created successfully. Verification email delivery is temporarily unavailable.'
+            ),
             'requires_verification': True,
+            'verification_email_sent': email_sent,
         }), 201
         
     except Exception as e:
@@ -82,6 +98,9 @@ def login():
             return jsonify({'error': 'Invalid credentials'}), 401
 
         if not user.email_verified:
+            token = secrets.token_urlsafe(32)
+            verification_service.create_challenge(user.email, 'email_link', token)
+            verification_service.send_verification_link(user.email, token)
             return jsonify({
                 'error': 'Email verification required',
                 'requires_verification': True,

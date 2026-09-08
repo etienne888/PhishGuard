@@ -18,12 +18,16 @@ onMounted(async () => {
   }
 
   const code = typeof route.query.code === "string" ? route.query.code : null;
-  if (!code) return;
-  try {
-    authStore.user = await authService.completeGoogleLogin(code);
-  } finally {
-    await router.replace({ path: route.path, query: {} });
+  if (code) {
+    try {
+      authStore.user = await authService.completeGoogleLogin(code);
+    } finally {
+      await router.replace({ path: route.path, query: {} });
+    }
+    return;
   }
+
+  authStore.setUser(await authService.me());
 });
 </script>
 

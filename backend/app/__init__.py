@@ -34,14 +34,14 @@ def create_app():
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
-    CORS(
-        app,
-        origins=os.getenv(
-            'CORS_ORIGINS',
-            'http://localhost:5173,http://localhost:5174,http://localhost:5177,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5177'
-        ).split(','),
-        supports_credentials=True,
-    )
+    configured_origins = os.getenv(
+        'CORS_ORIGINS',
+        'http://localhost:5173,http://localhost:5174,http://localhost:5177,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5177'
+    ).split(',')
+    frontend_url = os.getenv('FRONTEND_URL', '').rstrip('/')
+    if frontend_url and frontend_url not in configured_origins:
+        configured_origins.append(frontend_url)
+    CORS(app, origins=configured_origins, supports_credentials=True)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     

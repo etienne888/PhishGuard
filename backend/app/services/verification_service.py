@@ -72,7 +72,7 @@ class VerificationService:
                         smtp.login(username, password)
                     smtp.send_message(message)
                 return True
-            except (OSError, smtplib.SMTPException):
+            except Exception:
                 logger.exception('Verification code email delivery failed')
                 return False
         logger.info("Development email code for %s: %s", email, code)
@@ -103,7 +103,7 @@ class VerificationService:
                         smtp.login(username, password)
                     smtp.send_message(message)
                 return True
-            except (OSError, smtplib.SMTPException):
+            except Exception:
                 logger.exception('Verification link email delivery failed')
                 return False
         logger.info("Development verification link for %s: %s", email, link)
