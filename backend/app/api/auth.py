@@ -21,6 +21,7 @@ def register():
         email = (data.get('email') or '').strip().lower()
         password = data.get('password')
         confirm_password = data.get('confirmPassword')
+        phone = (data.get('phone') or '').strip() or None
         
         if not email or not password:
             return jsonify({'error': 'Email and password required'}), 400
@@ -30,6 +31,8 @@ def register():
         # Check if user exists
         if User.query.filter_by(email=email).first():
             return jsonify({'error': 'Email already registered'}), 400
+        if phone and User.query.filter_by(phone_number=phone).first():
+            return jsonify({'error': 'Phone number already registered'}), 400
         
         # Hash password
         salt = bcrypt.gensalt()
@@ -38,6 +41,7 @@ def register():
         # Create user
         user = User(
             email=email,
+            phone_number=phone,
             password_hash=password_hash,
             is_admin=False,
             email_verified=False,

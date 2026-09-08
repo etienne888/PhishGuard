@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppLogo from './AppLogo.vue'
+
 const year = new Date().getFullYear()
 
 const quickLinks = [

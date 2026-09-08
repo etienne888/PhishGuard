@@ -15,4 +15,5 @@ export interface LoginPayload {
 
 export interface RegisterPayload extends LoginPayload {
   confirmPassword: string
+  phone?: string
 }

@@ -57,20 +57,24 @@ class VerificationService:
         host = os.getenv('SMTP_HOST')
         sender = os.getenv('SMTP_FROM')
         if host and sender:
-            message = EmailMessage()
-            message['Subject'] = 'Votre code PhishGuard-AI'
-            message['From'] = sender
-            message['To'] = email
-            message.set_content(f'Votre code PhishGuard-AI est {code}. Il expire dans 5 minutes.')
-            with smtplib.SMTP(host, int(os.getenv('SMTP_PORT', '587')), timeout=10) as smtp:
-                if os.getenv('SMTP_USE_TLS', 'true').lower() == 'true':
-                    smtp.starttls()
-                username = os.getenv('SMTP_USERNAME')
-                password = os.getenv('SMTP_PASSWORD')
-                if username and password:
-                    smtp.login(username, password)
-                smtp.send_message(message)
-            return True
+            try:
+                message = EmailMessage()
+                message['Subject'] = 'Votre code PhishGuard-AI'
+                message['From'] = sender
+                message['To'] = email
+                message.set_content(f'Votre code PhishGuard-AI est {code}. Il expire dans 5 minutes.')
+                with smtplib.SMTP(host, int(os.getenv('SMTP_PORT', '587')), timeout=10) as smtp:
+                    if os.getenv('SMTP_USE_TLS', 'true').lower() == 'true':
+                        smtp.starttls()
+                    username = os.getenv('SMTP_USERNAME')
+                    password = os.getenv('SMTP_PASSWORD')
+                    if username and password:
+                        smtp.login(username, password)
+                    smtp.send_message(message)
+                return True
+            except (OSError, smtplib.SMTPException):
+                logger.exception('Verification code email delivery failed')
+                return False
         logger.info("Development email code for %s: %s", email, code)
         return True
 
@@ -80,24 +84,28 @@ class VerificationService:
         host = os.getenv('SMTP_HOST')
         sender = os.getenv('SMTP_FROM')
         if host and sender:
-            message = EmailMessage()
-            message['Subject'] = 'Vérifiez votre adresse email PhishGuard-AI'
-            message['From'] = sender
-            message['To'] = email
-            message.set_content(
-                f'Cliquez sur ce lien pour vérifier votre adresse email :\n\n{link}\n\n'
-                'Ce lien expire dans 5 minutes. Si vous n’avez pas créé ce compte, '
-                'ignorez cet email.'
-            )
-            with smtplib.SMTP(host, int(os.getenv('SMTP_PORT', '587')), timeout=10) as smtp:
-                if os.getenv('SMTP_USE_TLS', 'true').lower() == 'true':
-                    smtp.starttls()
-                username = os.getenv('SMTP_USERNAME')
-                password = os.getenv('SMTP_PASSWORD')
-                if username and password:
-                    smtp.login(username, password)
-                smtp.send_message(message)
-            return True
+            try:
+                message = EmailMessage()
+                message['Subject'] = 'Vérifiez votre adresse email PhishGuard-AI'
+                message['From'] = sender
+                message['To'] = email
+                message.set_content(
+                    f'Cliquez sur ce lien pour vérifier votre adresse email :\n\n{link}\n\n'
+                    'Ce lien expire dans 5 minutes. Si vous n’avez pas créé ce compte, '
+                    'ignorez cet email.'
+                )
+                with smtplib.SMTP(host, int(os.getenv('SMTP_PORT', '587')), timeout=10) as smtp:
+                    if os.getenv('SMTP_USE_TLS', 'true').lower() == 'true':
+                        smtp.starttls()
+                    username = os.getenv('SMTP_USERNAME')
+                    password = os.getenv('SMTP_PASSWORD')
+                    if username and password:
+                        smtp.login(username, password)
+                    smtp.send_message(message)
+                return True
+            except (OSError, smtplib.SMTPException):
+                logger.exception('Verification link email delivery failed')
+                return False
         logger.info("Development verification link for %s: %s", email, link)
         return True
 

@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -7,6 +8,9 @@ from flask_cors import CORS
 from flask_login import LoginManager
 
 load_dotenv()
+
+# Surface dev-mode OTP/verification codes (logged instead of emailed when SMTP isn't configured)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
 
 # Initialize extensions
 db = SQLAlchemy()

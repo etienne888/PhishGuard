@@ -67,9 +67,11 @@ export const useAuthStore = defineStore('auth', () => {
       error.value =
         message === 'Email already registered'
           ? 'Cette adresse email est déjà enregistrée.'
-          : message === 'Unable to send verification email'
-            ? "Le compte n'a pas pu être vérifié par email. Réessayez plus tard."
-            : 'Impossible de créer le compte. Réessayez.'
+          : message === 'Phone number already registered'
+            ? 'Ce numéro de téléphone est déjà utilisé.'
+            : message === 'Unable to send verification email'
+              ? "Le compte n'a pas pu être vérifié par email. Réessayez plus tard."
+              : 'Impossible de créer le compte. Réessayez.'
       return false
     } finally {
       isSubmitting.value = false
@@ -81,5 +83,9 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
   }
 
-  return { user, modalMode, isSubmitting, error, mfaRequired, openModal, closeModal, login, verifyMfa, register, logout }
+  function setUser(nextUser: AuthUser | null) {
+    user.value = nextUser
+  }
+
+  return { user, modalMode, isSubmitting, error, mfaRequired, openModal, closeModal, login, verifyMfa, register, logout, setUser }
 })
