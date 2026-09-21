@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, onUnmounted } from 'vue'
 import { formatDate } from '@/utils'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 // ============================================
 // TYPES
@@ -50,7 +53,7 @@ const lastUpdated = ref<string | null>(null)
 const sourceStatuses = ref<SourceStatus[]>([])
 const error = ref<string | null>(null)
 const isAutoRefresh = ref(true)
-let refreshInterval: number | null = null
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 // ============================================
 // COMPUTED
@@ -88,8 +91,9 @@ async function fetchWithProxy(url: string): Promise<string> {
       if (response.ok) {
         return await response.text()
       }
-    } catch (e) {
-      console.warn(`Proxy failed:`, e.message)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      console.warn('Proxy failed:', message)
     }
   }
   throw new Error('Tous les proxies ont échoué')
@@ -424,7 +428,7 @@ onUnmounted(() => {
           Intelligence en direct
         </div>
         
-        <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 font-display">🧠 Veille sur les menaces</h2>
+        <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 font-display">🧠 {{ t('landing.threatIntel.title') }}</h2>
         <p class="text-slate-500 mt-2 max-w-2xl mx-auto">
           Alimentée par des flux RSS et des sources de cybersécurité internationales, classée par catégorie.
         </p>

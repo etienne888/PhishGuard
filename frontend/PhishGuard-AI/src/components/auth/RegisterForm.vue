@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden p-6 sm:p-8"
+    class="bg-white rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden p-5 sm:p-7"
   >
     <!-- Header -->
     <div class="flex justify-between items-start mb-5">
@@ -62,12 +62,12 @@
       <form @submit.prevent="submitRegister" class="space-y-4">
         <div>
           <label class="text-xs font-medium text-slate-600 block mb-1">
-            Email <span class="text-red-500">*</span>
+            {{ t('auth.email') }} <span class="text-red-500">*</span>
           </label>
           <input
             v-model="form.email"
             type="email"
-            placeholder="vous@exemple.com"
+            :placeholder="t('auth.emailPlaceholder')"
             class="w-full px-3 py-2.5 border rounded-lg text-sm transition"
             :class="
               errors.email
@@ -84,7 +84,7 @@
 
         <div>
           <label class="text-xs font-medium text-slate-600 block mb-1">
-            Téléphone <span class="text-slate-400">(optionnel)</span>
+            {{ t('auth.phone') }} <span class="text-slate-400">(optionnel)</span>
           </label>
           <PhoneInput
             v-model="form.phone"
@@ -95,13 +95,13 @@
 
         <div>
           <label class="text-xs font-medium text-slate-600 block mb-1">
-            Mot de passe <span class="text-red-500">*</span>
+            {{ t('auth.password') }} <span class="text-red-500">*</span>
           </label>
           <div class="relative">
             <input
               v-model="form.password"
               :type="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
+              :placeholder="t('auth.passwordPlaceholder')"
               class="w-full px-3 py-2.5 border rounded-lg text-sm transition pr-10"
               :class="
                 errors.password
@@ -138,12 +138,12 @@
 
         <div>
           <label class="text-xs font-medium text-slate-600 block mb-1">
-            Confirmer le mot de passe <span class="text-red-500">*</span>
+            {{ t('auth.confirmPassword') }} <span class="text-red-500">*</span>
           </label>
           <input
             v-model="form.confirmPassword"
             type="password"
-            placeholder="••••••••"
+            :placeholder="t('auth.passwordPlaceholder')"
             class="w-full px-3 py-2.5 border rounded-lg text-sm transition"
             :class="
               errors.confirmPassword
@@ -178,7 +178,7 @@
           class="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
           <i v-if="isSubmitting" class="fas fa-spinner fa-spin"></i>
-          {{ isSubmitting ? "Création..." : "Créer le compte" }}
+          {{ isSubmitting ? t('auth.register.creating') : t('auth.register.submit') }}
         </button>
         <p
           v-if="authStore.error"
@@ -203,7 +203,7 @@
           class="text-blue-600 font-medium hover:underline"
           @click="$emit('switch-to-login')"
         >
-          Se connecter
+          {{ t('auth.register.login') }}
         </button>
       </p>
     </div>
@@ -301,11 +301,13 @@ import { api } from "@/services/api";
 import GoogleLoginButton from "./GoogleLoginButton.vue";
 import PhoneInput from "./PhoneInput.vue";
 import OtpVerificationForm from "./OtpVerificationForm.vue";
+import { useI18n } from '@/i18n';
 
 const emit = defineEmits(["close", "switch-to-login"]);
 
 const authStore = useAuthStore();
 const router = useRouter();
+const { t } = useI18n();
 
 type Step = "account" | "sent" | "done";
 

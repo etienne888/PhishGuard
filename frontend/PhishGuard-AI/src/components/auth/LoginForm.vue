@@ -17,15 +17,15 @@
           </span>
         </div>
         <h3 class="text-2xl font-bold text-slate-800 font-display">
-          Content de vous revoir
+          {{ t('auth.login.title') }}
         </h3>
         <p class="text-sm text-slate-500">
-          Connectez-vous à votre compte PhishGuard-AI
+          {{ t('auth.login.subtitle') }}
         </p>
       </div>
       <button
         class="text-slate-400 hover:text-slate-600 transition p-1 rounded-lg hover:bg-slate-100"
-        aria-label="Fermer"
+        :aria-label="t('auth.close')"
         @click="$emit('close')"
       >
         <i class="fas fa-xmark text-xl"></i>
@@ -57,12 +57,12 @@
       <form @submit.prevent="handleEmailLogin">
         <div>
           <label class="text-xs font-medium text-slate-600 block mb-1">
-            Email <span class="text-red-500">*</span>
+            {{ t('auth.email') }} <span class="text-red-500">*</span>
           </label>
           <input
             v-model="emailForm.email"
             type="email"
-            placeholder="vous@exemple.com"
+            :placeholder="t('auth.emailPlaceholder')"
             class="w-full px-3 py-2.5 border rounded-lg text-sm transition"
             :class="
               emailErrors.email
@@ -84,20 +84,20 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="text-xs font-medium text-slate-600 block">
-              Mot de passe <span class="text-red-500">*</span>
+              {{ t('auth.password') }} <span class="text-red-500">*</span>
             </label>
             <button
               type="button"
               class="text-xs text-blue-600 hover:underline font-medium"
             >
-              Mot de passe oublié ?
+              {{ t('auth.login.forgot') }}
             </button>
           </div>
           <div class="relative">
             <input
               v-model="emailForm.password"
               :type="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
+              :placeholder="t('auth.passwordPlaceholder')"
               class="w-full px-3 py-2.5 border rounded-lg text-sm transition pr-10"
               :class="
                 emailErrors.password
@@ -126,7 +126,7 @@
               v-model="rememberMe"
               class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
-            Se souvenir de moi
+            {{ t('auth.login.remember') }}
           </label>
         </div>
 
@@ -144,7 +144,7 @@
           class="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
           <i v-if="isSubmitting" class="fas fa-spinner fa-spin"></i>
-          {{ isSubmitting ? "Connexion en cours..." : "Se connecter" }}
+          {{ isSubmitting ? t('auth.login.submitting') : t('auth.login.submit') }}
         </button>
       </form>
 
@@ -177,7 +177,7 @@
           :disabled="isSubmitting || mfaCode.length !== 6"
           @click="verifyMfa"
         >
-          Vérifier le code
+          {{ t('auth.verify.submit') }}
         </button>
       </div>
     </div>
@@ -211,7 +211,7 @@
           @click="$emit('switch-to-register')"
           class="text-blue-600 font-medium hover:underline"
         >
-          S'inscrire
+          {{ t('auth.login.register') }}
         </button>
       </p>
     </div>
@@ -226,11 +226,14 @@ import { isValidEmail } from "@/utils";
 import GoogleLoginButton from "./GoogleLoginButton.vue";
 import OtpVerificationForm from "./OtpVerificationForm.vue";
 import EmailCodeForm from "./EmailCodeForm.vue";
+import { useI18n } from '@/i18n';
+import type { AuthUser } from '@/types';
 
 const emit = defineEmits(["close", "switch-to-register", "switch-to-demo"]);
 
 const authStore = useAuthStore();
 const router = useRouter();
+const { t } = useI18n();
 
 // Tabs
 const tabs = [
@@ -249,6 +252,19 @@ const mfaCode = ref("");
 
 const isSubmitting = ref(false);
 const authError = ref("");
+
+function dashboardTarget(user: AuthUser) {
+  return user.is_admin === true ? { name: 'admin-overview' } : { name: 'dashboard' };
+}
+
+async function redirectAfterLogin(user: AuthUser) {
+  emit('close');
+  await router.replace(dashboardTarget(user));
+}
+
+function isWrappedLoginResponse(value: AuthUser | { user?: AuthUser }): value is { user?: AuthUser } {
+  return 'user' in value;
+}
 
 function validateEmailField(field: keyof typeof emailErrors) {
   if (field === "email") {
@@ -275,8 +291,7 @@ async function handleEmailLogin() {
       password: emailForm.password,
     });
     if (!authStore.error && authStore.user) {
-      emit("close");
-      await router.push({ name: "dashboard" });
+      await redirectAfterLogin(authStore.user);
     }
   } catch (err: any) {
     authError.value = err.message || "Erreur de connexion";
@@ -289,27 +304,30 @@ async function verifyMfa() {
   isSubmitting.value = true;
   await authStore.verifyMfa(mfaCode.value);
   if (!authStore.error && authStore.user) {
-    emit("close");
-    await router.push({ name: "dashboard" });
+    await redirectAfterLogin(authStore.user);
   }
   isSubmitting.value = false;
 }
 
-function handleGoogleLogin(user: any) {
-  authStore.user = user.user ?? user;
-  emit("close");
-  void router.push({ name: "dashboard" });
+function handleGoogleLogin(response: { user?: AuthUser } | AuthUser) {
+  let user: AuthUser;
+  if (isWrappedLoginResponse(response)) {
+    if (!response.user) return;
+    user = response.user;
+  } else {
+    user = response;
+  }
+  authStore.user = user;
+  void redirectAfterLogin(user);
 }
 
-function handleOTPVerified(user: any) {
+function handleOTPVerified(user: AuthUser) {
   authStore.user = user;
-  emit("close");
-  void router.push({ name: "dashboard" });
+  void redirectAfterLogin(user);
 }
 
-function handleEmailCodeVerified(user: any) {
+function handleEmailCodeVerified(user: AuthUser) {
   authStore.user = user;
-  emit("close");
-  void router.push({ name: "dashboard" });
+  void redirectAfterLogin(user);
 }
 </script>

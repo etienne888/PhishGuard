@@ -4,8 +4,10 @@ import MfaSettings from "@/components/auth/MfaSettings.vue";
 import { useAuthStore } from "@/stores/auth";
 import { onMounted } from "vue";
 import { authService } from "@/services/auth.service";
+import { useI18n } from '@/i18n';
 
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 onMounted(async () => {
   authStore.user = await authService.me();
@@ -18,10 +20,10 @@ onMounted(async () => {
     <div class="max-w-4xl mx-auto">
       <div class="mb-8">
         <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">
-          Compte
+          {{ t('user.security.account') }}
         </p>
         <h1 class="text-3xl font-bold text-slate-800 font-display mt-1">
-          Sécurité du compte
+          {{ t('user.security.title') }}
         </h1>
         <p class="text-slate-500 mt-2">{{ authStore.user?.email }}</p>
       </div>

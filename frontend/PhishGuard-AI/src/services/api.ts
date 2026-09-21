@@ -1,12 +1,12 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
+import { apiFetch, type ApiFetchOptions } from './http'
 
-interface RequestOptions extends RequestInit {
+interface RequestOptions extends ApiFetchOptions {
   params?: Record<string, string | number | undefined>
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { params, headers, ...rest } = options
-  const url = new URL(`${BASE_URL}${path}`, window.location.origin)
+  const { params, ...rest } = options
+  const url = new URL(path, window.location.origin)
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -14,21 +14,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     })
   }
 
-  const response = await fetch(url.toString(), {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers
-    },
-    ...rest
-  })
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}))
-    throw new Error(body.message ?? body.error ?? `Request failed with status ${response.status}`)
-  }
-
-  return response.json() as Promise<T>
+  return apiFetch<T>(`${url.pathname}${url.search}`, rest)
 }
 
 export const api = {

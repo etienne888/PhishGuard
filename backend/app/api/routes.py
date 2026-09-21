@@ -1,7 +1,13 @@
 # backend/app/api/routes.py
-from flask import Blueprint, request, jsonify
+import os
+from time import perf_counter
+
+from flask import Blueprint, current_app, request
 from flask_login import login_required, current_user
+from sqlalchemy import text
+
 from app import db
+from app.api.responses import ok
 from app.models import Analysis
 import json
 from datetime import datetime
@@ -24,7 +30,20 @@ def _normalize_verdict(verdict):
 
 @api_bp.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'healthy', 'service': 'PhishGuard-AI API', 'version': '1.0.0'})
+    try:
+        db.session.execute(text('SELECT 1'))
+        database_status = 'connected'
+    except Exception:
+        database_status = 'unavailable'
+
+    return ok({
+        'status': 'healthy' if database_status == 'connected' else 'degraded',
+        'version': '1.0.0',
+        'db': database_status,
+        'ml_engine': 'loaded' if detector is not None else 'unavailable',
+        'ai_provider': os.getenv('AI_PROVIDER', 'none'),
+        'uptime_seconds': round(perf_counter() - current_app.config['APP_STARTED_AT']),
+    })
 
 @api_bp.route('/analyze', methods=['POST'])
 def analyze_message():

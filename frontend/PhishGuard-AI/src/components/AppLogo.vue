@@ -8,7 +8,7 @@ withDefaults(defineProps<{ size?: number }>(), { size: 40 })
 const gradientId = `logoGradient-${Math.random().toString(36).slice(2, 9)}`
 
 // Logo image path - adjust this path based on where your logo is stored
-const logoSrc = ref('')
+const logoSrc = ref<string>('')
 
 onMounted(() => {
   // Try to load the logo from the images folder
@@ -16,18 +16,24 @@ onMounted(() => {
   const logoPaths = [
     '/src/assets/Images/logo.png',
     '/src/assets/Images/PhishGuard_AI_Logo.png',
-  ]
-  
+  ] as const
+
+  const primaryLogo = logoPaths[0]
+  if (!primaryLogo) {
+    logoSrc.value = ''
+    return
+  }
+
   // Try to load the first available logo
   const img = new Image()
   img.onload = () => {
-    logoSrc.value = logoPaths[0] // Use the first path that loads
+    logoSrc.value = primaryLogo
   }
   img.onerror = () => {
     // If no custom logo found, keep the SVG fallback
     logoSrc.value = ''
   }
-  img.src = logoPaths[0]
+  img.src = primaryLogo
 })
 </script>
 

@@ -3,8 +3,10 @@
     import { useCategoriesStore } from "@/stores";
     import CategoryDetail from "./CategoriesDetail.vue";
     import type { ThreatColor } from "@/types";
+    import { useI18n } from '@/i18n';
 
     const store = useCategoriesStore();
+    const { t } = useI18n();
 
     onMounted(() => {
     if (!store.categories.length) store.fetchCategories();
@@ -36,11 +38,10 @@
         <div class="max-w-7xl mx-auto">
         <div class="text-center mb-14">
             <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 font-display">
-            12 menaces à connaître
+            {{ t('landing.categories.title') }}
             </h2>
             <p class="text-slate-500 mt-2 max-w-2xl mx-auto">
-            Chaque catégorie détaille le mécanisme, les signaux d'alerte, et les
-            bons réflexes.
+            {{ t('landing.categories.subtitle') }}
             </p>
         </div>
 

@@ -2,28 +2,30 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authService } from '@/services/auth.service'
+import { useI18n } from '@/i18n'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const status = ref<'loading' | 'success' | 'error'>('loading')
-const message = ref('Vérification de votre adresse email...')
+const message = ref(t('verify.loading'))
 
 onMounted(async () => {
   const email = typeof route.query.email === 'string' ? route.query.email : ''
   const token = typeof route.query.token === 'string' ? route.query.token : ''
   if (!email || !token) {
     status.value = 'error'
-    message.value = 'Ce lien de vérification est incomplet.'
+    message.value = t('verify.incomplete')
     return
   }
 
   try {
     await authService.verifyEmail(email, token)
     status.value = 'success'
-    message.value = 'Votre email est vérifié. Vous pouvez maintenant vous connecter.'
+    message.value = t('verify.success')
   } catch {
     status.value = 'error'
-    message.value = 'Ce lien est invalide ou a expiré.'
+    message.value = t('verify.invalid')
   }
 })
 </script>
@@ -37,14 +39,14 @@ onMounted(async () => {
       >
         <i :class="status === 'success' ? 'fas fa-check' : status === 'error' ? 'fas fa-xmark' : 'fas fa-spinner fa-spin'"></i>
       </div>
-      <h1 class="text-2xl font-bold text-slate-800 mt-5">Vérification email</h1>
+      <h1 class="text-2xl font-bold text-slate-800 mt-5">{{ t('verify.title') }}</h1>
       <p class="text-slate-500 mt-3">{{ message }}</p>
       <button
         v-if="status !== 'loading'"
         class="mt-6 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold"
         @click="router.push({ name: 'home', query: { auth: 'login' } })"
       >
-        Se connecter
+        {{ t('verify.login') }}
       </button>
     </section>
   </main>

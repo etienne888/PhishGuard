@@ -1,27 +1,29 @@
 <script setup lang="ts">
 import AppLogo from './AppLogo.vue'
+import { useI18n } from '@/i18n'
 
 const year = new Date().getFullYear()
+const { t } = useI18n()
 
 const quickLinks = [
-  { label: 'Accueil', href: '/' },
-  { label: 'Analyser', href: '#analyze' },
-  { label: 'Éducation', href: '#education' },
-  { label: 'Tableau de bord', href: '/dashboard' }
+  { key: 'footer.home' as const, href: '/' },
+  { key: 'nav.analyze' as const, href: '#analyze' },
+  { key: 'footer.education' as const, href: '#education' },
+  { key: 'nav.dashboard' as const, href: '/dashboard' }
 ]
 
 const legalLinks = [
-  { label: 'Confidentialité', href: '/privacy' },
-  { label: 'Conditions', href: '/terms' },
-  { label: 'Mentions légales', href: '/legal' },
-  { label: 'Cookies', href: '/cookies' }
+  { key: 'footer.privacy' as const, href: '/privacy' },
+  { key: 'footer.terms' as const, href: '/terms' },
+  { key: 'footer.legal' as const, href: '/legal' },
+  { key: 'footer.cookies' as const, href: '/cookies' }
 ]
 
 const securityLinks = [
   { label: 'CIRT-CM', href: 'https://cirt.cm', external: true },
   { label: 'ANTIC', href: 'https://antic.cm', external: true },
   { label: 'Interpol', href: 'https://interpol.int', external: true },
-  { label: 'Signalement', href: '#report' }
+  { key: 'footer.report' as const, href: '#report' }
 ]
 
 const socialLinks = [
@@ -48,17 +50,17 @@ const socialLinks = [
             </span>
           </div>
           <p class="text-sm text-slate-400 leading-relaxed max-w-xs">
-            Protégez-vous contre le phishing, la fraude Mobile Money et les cyberarnaques au Cameroun.
+            {{ t('footer.description') }}
           </p>
           <!-- Security Badge -->
           <div class="flex items-center gap-2">
             <span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-full border border-emerald-400/20">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Sécurisé
+              {{ t('footer.secure') }}
             </span>
             <span class="inline-flex items-center gap-1.5 text-xs font-medium text-blue-400 bg-blue-400/10 px-3 py-1.5 rounded-full border border-blue-400/20">
               <i class="fas fa-shield-halved text-[10px]"></i>
-              IA puissante
+              {{ t('footer.poweredAi') }}
             </span>
           </div>
         </div>
@@ -66,16 +68,16 @@ const socialLinks = [
         <!-- Column 2: Quick Links -->
         <div>
           <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">
-            Navigation
+            {{ t('footer.navigation') }}
           </h4>
           <ul class="space-y-2.5">
-            <li v-for="link in quickLinks" :key="link.label">
+            <li v-for="link in quickLinks" :key="link.key">
               <a 
                 :href="link.href" 
                 class="text-sm text-slate-400 hover:text-white transition hover:translate-x-1 inline-flex items-center gap-1.5"
               >
                 <i class="fas fa-chevron-right text-[8px] text-slate-600"></i>
-                {{ link.label }}
+                {{ t(link.key) }}
               </a>
             </li>
           </ul>
@@ -84,22 +86,22 @@ const socialLinks = [
         <!-- Column 3: Legal & Security -->
         <div>
           <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">
-            Légal & Sécurité
+            {{ t('footer.legalSecurity') }}
           </h4>
           <ul class="space-y-2.5">
-            <li v-for="link in legalLinks" :key="link.label">
+            <li v-for="link in legalLinks" :key="link.key">
               <a 
                 :href="link.href" 
                 class="text-sm text-slate-400 hover:text-white transition hover:translate-x-1 inline-flex items-center gap-1.5"
               >
                 <i class="fas fa-chevron-right text-[8px] text-slate-600"></i>
-                {{ link.label }}
+                {{ t(link.key) }}
               </a>
             </li>
           </ul>
           <div class="mt-4 pt-4 border-t border-slate-800/50">
             <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-              Signalement
+              {{ t('footer.reporting') }}
             </h4>
             <div class="space-y-1 text-sm">
               <p class="text-slate-400 flex items-center gap-2">
@@ -117,10 +119,10 @@ const socialLinks = [
         <!-- Column 4: Resources & Social -->
         <div>
           <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">
-            Ressources
+            {{ t('footer.resources') }}
           </h4>
           <ul class="space-y-2.5">
-            <li v-for="link in securityLinks" :key="link.label">
+            <li v-for="link in securityLinks" :key="link.label || link.key">
               <a 
                 :href="link.href" 
                 target="_blank"
@@ -128,7 +130,7 @@ const socialLinks = [
                 class="text-sm text-slate-400 hover:text-white transition hover:translate-x-1 inline-flex items-center gap-1.5"
               >
                 <i class="fas fa-external-link-alt text-[8px] text-slate-600"></i>
-                {{ link.label }}
+                {{ 'key' in link ? t(link.key as string) : link.label }}
               </a>
             </li>
           </ul>
@@ -136,7 +138,7 @@ const socialLinks = [
           <!-- Social Links -->
           <div class="mt-4 pt-4 border-t border-slate-800/50">
             <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-              Suivez-nous
+              {{ t('footer.followUs') }}
             </h4>
             <div class="flex gap-3">
               <a 
@@ -162,7 +164,7 @@ const socialLinks = [
           <span class="hidden sm:inline">|</span>
           <span class="flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>Protection active</span>
+            <span>{{ t('footer.activeProtection') }}</span>
           </span>
         </div>
         <div class="flex items-center gap-4 text-xs text-slate-500">
@@ -170,7 +172,7 @@ const socialLinks = [
           <span>|</span>
           <span class="flex items-center gap-1">
             <i class="fas fa-shield-check text-emerald-500 text-[10px]"></i>
-            Sécurisé par <span class="text-slate-400 font-medium">PhishGuard-AI</span>
+            {{ t('footer.securedBy') }} <span class="text-slate-400 font-medium">PhishGuard-AI</span>
           </span>
         </div>
       </div>

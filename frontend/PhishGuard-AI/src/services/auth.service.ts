@@ -1,4 +1,5 @@
 import { api } from './api'
+import { apiFetch } from './http'
 import type { AuthUser, LoginPayload, RegisterPayload } from '@/types'
 
 interface LoginResponse {
@@ -52,7 +53,7 @@ export const authService = {
 
   async me(): Promise<AuthUser | null> {
     try {
-      return await api.get<AuthUser>('/auth/me')
+      return await apiFetch<AuthUser>('/auth/me', { silent: true })
     } catch {
       return null
     }

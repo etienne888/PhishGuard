@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 // ============================================
 // ANIMATED STATS
@@ -84,7 +87,7 @@ const currentIndex = ref(0)
 const commentsPerView = ref(3)
 const totalComments = computed(() => comments.value.length)
 const isAutoPlaying = ref(true)
-let autoPlayInterval: number | null = null
+let autoPlayInterval: ReturnType<typeof setInterval> | null = null
 
 // Responsive: adjust comments per view
 function updateCommentsPerView() {
@@ -212,7 +215,8 @@ onMounted(() => {
   
   const observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0].isIntersecting) {
+      const firstEntry = entries[0]
+      if (firstEntry && firstEntry.isIntersecting) {
         isVisible.value = true
         animateNumbers()
       }
@@ -409,7 +413,7 @@ function animateNumbers() {
         <div class="max-w-2xl mx-auto">
           <div class="text-center mb-8">
             <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Partagez votre avis</span>
-            <h3 class="text-2xl font-bold text-slate-800 font-display mt-1">Laissez un commentaire</h3>
+            <h3 class="text-2xl font-bold text-slate-800 font-display mt-1">{{ t('landing.about.comment') }}</h3>
             <p class="text-sm text-slate-500 mt-1">Votre retour nous aide à améliorer PhishGuard-AI</p>
           </div>
 

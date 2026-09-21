@@ -1,8 +1,10 @@
     <script setup lang="ts">
+    import { useI18n } from '@/i18n'
+    const { t } = useI18n()
     const stats = [
-    { value: '1.02 Md', label: 'FCFA perdus en 2025' },
-    { value: '471', label: 'cas de phishing signalés' },
-    { value: '99%', label: "précision de détection" }
+    { value: '1.02 Md', label: 'landing.hero.statLosses' },
+    { value: '471', label: 'landing.hero.statReports' },
+    { value: '99%', label: 'landing.hero.statAccuracy' }
     ]
     </script>
 
@@ -14,21 +16,21 @@
             <div>
             <div class="inline-flex items-center gap-2 bg-emerald-50/80 border border-emerald-200/50 rounded-full px-4 py-1.5 text-sm font-medium text-emerald-700 mb-4">
                 <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                Adopté par des citoyens partout au Cameroun
+                {{ t('landing.hero.adopted') }}
             </div>
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight text-slate-800 font-display">
-                Détectez le phishing<br />
-                <span class="gradient-text">avant qu'il ne soit trop tard</span>
+                {{ t('landing.hero.title') }}<br />
+                <span class="gradient-text">{{ t('landing.hero.subtitle') }}</span>
             </h1>
             <p class="mt-4 text-lg text-slate-600 max-w-lg leading-relaxed">
-                Collez un SMS, un email ou un message suspect pour savoir instantanément s'il s'agit d'une arnaque.
-                <span class="font-medium text-slate-700">Propulsé par l'IA</span> — pensé pour le Cameroun.
+                {{ t('landing.hero.description') }}
+                <span class="font-medium text-slate-700">{{ t('landing.hero.poweredBy') }}</span>
             </p>
 
             <div class="mt-6 flex flex-wrap gap-6">
                 <div v-for="stat in stats" :key="stat.label">
                 <span class="text-2xl font-bold text-slate-800 font-display">{{ stat.value }}</span>
-                <span class="text-sm text-slate-500 block">{{ stat.label }}</span>
+                <span class="text-sm text-slate-500 block">{{ t(stat.label) }}</span>
                 </div>
             </div>
 
@@ -37,13 +39,13 @@
                 href="#analyze"
                 class="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition hover:scale-[1.02] active:scale-[0.98]"
                 >
-                Lancer une analyse
+                {{ t('landing.hero.ctaAnalyze') }}
                 </a>
                 <a
                 href="#education"
                 class="px-8 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-white hover:shadow-md transition"
                 >
-                Voir les menaces
+                {{ t('landing.hero.ctaThreats') }}
                 </a>
             </div>
             </div>
@@ -55,7 +57,7 @@
                     <span class="h-2 w-2 rounded-full bg-red-400"></span>
                     <span class="h-2 w-2 rounded-full bg-yellow-400"></span>
                     <span class="h-2 w-2 rounded-full bg-green-400"></span>
-                    <span class="ml-2">PhishGuard-AI · Analyse en direct</span>
+                    <span class="ml-2">PhishGuard-AI · {{ t('landing.hero.liveAnalysis') }}</span>
                 </div>
 
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
@@ -68,28 +70,28 @@
 
                 <div class="mt-3 space-y-2">
                     <span class="inline-flex items-center gap-1.5 text-sm font-bold text-red-600">
-                    92% de risque détecté
+                    92% {{ t('landing.hero.riskDetected') }}
                     </span>
 
                     <div class="flex flex-wrap gap-2">
                     <span class="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full border border-red-200">
-                        Domaine suspect (.tk)
+                        {{ t('landing.hero.suspiciousDomain') }}
                     </span>
                     <span class="text-xs bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full border border-orange-200">
-                        Urgence détectée
+                        {{ t('landing.hero.urgency') }}
                     </span>
                     <span class="text-xs bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full border border-purple-200">
-                        Fraude Mobile Money
+                        {{ t('landing.hero.mobileMoneyFraud') }}
                     </span>
                     </div>
                 </div>
                 </div>
 
                 <div class="absolute -bottom-4 -right-6 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 shadow-lg rotate-3">
-                <span class="text-sm font-semibold text-emerald-700">Vérifié par l'IA</span>
+                <span class="text-sm font-semibold text-emerald-700">{{ t('landing.hero.verifiedByAi') }}</span>
                 </div>
                 <div class="absolute -top-4 -left-6 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 shadow-lg -rotate-3">
-                <span class="text-sm font-semibold text-blue-700">Moteur à règles</span>
+                <span class="text-sm font-semibold text-blue-700">{{ t('landing.hero.ruleEngine') }}</span>
                 </div>
             </div>
             </div>
