@@ -5,6 +5,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models import User
 from app.services.verification_service import VerificationService
+from app.services import settings_service
 import bcrypt
 import pyotp
 import secrets
@@ -22,11 +23,16 @@ def register():
         password = data.get('password')
         confirm_password = data.get('confirmPassword')
         phone = (data.get('phone') or '').strip() or None
-        
+
+        if not settings_service.get('allow_signup'):
+            return jsonify({'error': 'New account registration is currently disabled'}), 403
+
         if not email or not password:
             return jsonify({'error': 'Email and password required'}), 400
         if confirm_password is not None and password != confirm_password:
             return jsonify({'error': 'Passwords do not match'}), 400
+        if len(password) < settings_service.get('password_min_length'):
+            return jsonify({'error': f"Password must be at least {settings_service.get('password_min_length')} characters"}), 400
         
         # Check if user exists
         existing_user = User.query.filter_by(email=email).first()
@@ -97,6 +103,9 @@ def login():
         if not user:
             return jsonify({'error': 'Invalid credentials'}), 401
 
+        if user.status == 'suspended':
+            return jsonify({'error': 'This account has been suspended. Contact an administrator.'}), 403
+
         if not user.email_verified:
             token = secrets.token_urlsafe(32)
             verification_service.create_challenge(user.email, 'email_link', token)
@@ -113,8 +122,8 @@ def login():
         # Verify password
         if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
             user.login_attempts += 1
-            if user.login_attempts >= 5:
-                user.locked_until = datetime.utcnow() + timedelta(minutes=15)
+            if user.login_attempts >= settings_service.get('max_login_attempts'):
+                user.locked_until = datetime.utcnow() + timedelta(minutes=settings_service.get('lockout_duration_min'))
             db.session.commit()
             return jsonify({'error': 'Invalid credentials'}), 401
         
@@ -123,7 +132,7 @@ def login():
         user.last_login = datetime.utcnow()
         db.session.commit()
         
-        if user.mfa_active:
+        if user.mfa_active or settings_service.get('mfa_required'):
             session['mfa_pending_user_id'] = user.id
             return jsonify({'mfa_required': True}), 202
 
@@ -155,6 +164,7 @@ def get_current_user():
     return jsonify({
         'id': current_user.id,
         'email': current_user.email,
+        'displayName': current_user.full_name,
         'is_admin': current_user.is_admin,
         'mfa_active': current_user.mfa_active,
         'created_at': current_user.created_at.isoformat()

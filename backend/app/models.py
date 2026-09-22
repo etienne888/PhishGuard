@@ -10,11 +10,13 @@ class User(UserMixin, db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    full_name = db.Column(db.String(255), nullable=True)
     phone_number = db.Column(db.String(30), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
     auth_provider = db.Column(db.String(30), default='password', nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(20), default='active', nullable=False)
     mfa_secret = db.Column(db.String(32), nullable=True)
     mfa_active = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -104,6 +106,14 @@ class MFASession(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     user = db.relationship('User', backref='mfa_sessions')
+
+
+class PlatformSetting(db.Model):
+    __tablename__ = 'platform_settings'
+
+    key = db.Column(db.String(100), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class OAuthAccount(db.Model):

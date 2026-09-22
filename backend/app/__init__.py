@@ -103,6 +103,7 @@ def create_app():
     # Register blueprints
     from app.api.routes import api_bp
     from app.api.auth import auth_bp
+    from app.api.admin import admin_bp
     from app.api.mobilemoney import mobile_money_bp
     from app.api.oauth import oauth_bp
     from app.api.otp import otp_bp
@@ -128,6 +129,7 @@ def create_app():
     
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(mobile_money_bp, url_prefix='/api/mobile-money')
     app.register_blueprint(oauth_bp, url_prefix='/api/oauth')
     app.register_blueprint(otp_bp, url_prefix='/api/otp')

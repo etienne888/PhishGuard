@@ -187,20 +187,20 @@
                     @click="showProfile = !showProfile"
                     class="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white text-xs font-bold">LT</div>
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white text-xs font-bold">{{ profileInitials }}</div>
                     <div class="hidden md:block text-left">
-                    <div class="text-xs font-semibold leading-tight">Lareine Tracy</div>
+                    <div class="text-xs font-semibold leading-tight">{{ displayName }}</div>
                     <div class="text-[10px] text-slate-500 leading-tight">Administrateur</div>
                     </div>
                 </button>
                 <div v-if="showProfile" class="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
                     <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
-                    <p class="text-sm font-semibold">Lareine Tracy</p>
-                    <p class="text-xs text-slate-500">lareine@phishguard.cm</p>
+                    <p class="text-sm font-semibold">{{ displayName }}</p>
+                    <p class="text-xs text-slate-500">{{ user?.email }}</p>
                     </div>
                     <div class="p-1.5">
-                    <button class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Mon profil</button>
-                    <button class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Préférences</button>
+                    <button @click="goToProfile" class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Mon profil</button>
+                    <button @click="goToSecurity" class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Préférences</button>
                     <button @click="handleLogout" class="w-full text-left px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10">Déconnexion</button>
                     </div>
                 </div>
@@ -268,7 +268,13 @@
 
     const route = useRoute()
     const router = useRouter()
-    const { logout } = useAuth()
+    const { logout, user } = useAuth()
+
+    const displayName = computed(() => user.value?.displayName || user.value?.email?.split('@')[0] || 'Administrateur')
+    const profileInitials = computed(() => {
+    const parts = displayName.value.split(' ')
+    return `${parts[0]?.charAt(0) ?? ''}${parts[1]?.charAt(0) ?? ''}`.toUpperCase() || 'A'
+    })
 
     const isSidebarOpen = ref(false)
     const isCollapsed = ref(false)
@@ -378,6 +384,8 @@
     })
 
     function openSearch() { searchOpen.value = true }
+    function goToProfile() { showProfile.value = false; router.push({ name: 'admin-settings' }) }
+    function goToSecurity() { showProfile.value = false; router.push({ name: 'admin-settings', query: { tab: 'security' } }) }
     function onKey(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openSearch() }
     if (e.key === 'Escape') { searchOpen.value = false; showNotifications.value = false; showProfile.value = false }
