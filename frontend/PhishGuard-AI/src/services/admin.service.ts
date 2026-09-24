@@ -100,7 +100,7 @@ export interface ThreatPoint {
   host: string
   count: number
   max_score: number
-  status: 'phishing' | 'suspicious'
+  status: 'phishing' | 'suspicious' | 'safe'
   last_seen: string | null
   analysis_ids: number[]
   ip?: string
@@ -116,6 +116,8 @@ export interface ThreatPoint {
 export interface ThreatMapData {
   target: { lat: number; lon: number; label: string }
   days: number
+  scope: 'threats' | 'all'
+  analyses_scanned: number
   points: ThreatPoint[]
   unlocated: ThreatPoint[]
   countries: Array<{ country: string; count: number }>
@@ -124,7 +126,9 @@ export interface ThreatMapData {
 
 export const adminOpsService = {
   getOverview: () => apiFetch<AdminOverview>('/admin/overview', { silent: true }),
-  getThreatMap: (days = 30) => apiFetch<ThreatMapData>(`/admin/threat-map?days=${days}`, { silent: true, timeoutMs: 20_000 }),
+  /** scope 'all' also maps links from safe messages; retry re-checks domains that failed to resolve. */
+  getThreatMap: (days = 30, scope: 'threats' | 'all' = 'threats', retry = false) =>
+    apiFetch<ThreatMapData>(`/admin/threat-map?days=${days}&scope=${scope}${retry ? '&retry=1' : ''}`, { silent: true, timeoutMs: 25_000 }),
 
   listReviewQueue: (view: ReviewView, page = 1) =>
     apiFetch<{ items: ReviewItem[]; total: number; page: number; per_page: number }>(

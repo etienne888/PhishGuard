@@ -24,6 +24,7 @@ const countryPaths = countries.map((f, i) => ({ id: String(f.id ?? i), d: path(f
 
 const data = ref<ThreatMapData | null>(null)
 const days = ref(30)
+const scope = ref<'threats' | 'all'>('threats')
 const loading = ref(false)
 const error = ref('')
 const hovered = ref<ThreatPoint | null>(null)
@@ -66,12 +67,12 @@ const totals = computed(() => {
   }
 })
 
-async function load() {
+async function load(retry = false) {
   loading.value = true
   error.value = ''
   const before = new Set(data.value?.points.map((p) => p.host) ?? [])
   try {
-    const next = await adminOpsService.getThreatMap(days.value)
+    const next = await adminOpsService.getThreatMap(days.value, scope.value, retry)
     const fresh = before.size ? next.points.filter((p) => !before.has(p.host)) : []
     data.value = next
     newHosts.value = new Set(fresh.map((p) => p.host))
@@ -87,10 +88,13 @@ async function load() {
   }
 }
 
-watch(days, load)
+watch([days, scope], () => {
+  data.value = null // new filter: don't announce every point as "new"
+  void load()
+})
 onMounted(() => {
   void load()
-  timer = window.setInterval(load, props.refreshMs)
+  timer = window.setInterval(() => load(), props.refreshMs)
 })
 onBeforeUnmount(() => { window.clearInterval(timer); window.clearTimeout(flashTimer) })
 
@@ -110,10 +114,15 @@ function place(p: ThreatPoint) {
         <p class="text-xs text-slate-400">Localisation des serveurs qui hébergent les liens malveillants détectés · géolocalisation IP (ville, approximative)</p>
       </div>
       <div class="ml-auto flex items-center gap-2 text-xs">
+        <div class="flex rounded-lg border border-slate-700 p-0.5">
+          <button v-for="s in [{ id: 'threats', label: 'Menaces' }, { id: 'all', label: 'Tous les liens' }] as const" :key="s.id"
+                  class="rounded-md px-2.5 py-1" :class="scope === s.id ? 'bg-slate-700 text-white' : 'text-slate-400'" @click="scope = s.id">{{ s.label }}</button>
+        </div>
         <select v-model.number="days" class="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-slate-200">
           <option :value="7">7 jours</option><option :value="30">30 jours</option><option :value="90">90 jours</option>
         </select>
-        <button class="rounded-lg border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-cyan-400" :disabled="loading" @click="load">
+        <button class="rounded-lg border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-cyan-400" :disabled="loading"
+                title="Re-vérifie aussi les domaines qui n'avaient pas pu être localisés" @click="load(true)">
           {{ loading ? 'Balayage…' : '↻ Balayer' }}
         </button>
       </div>
@@ -175,6 +184,7 @@ function place(p: ThreatPoint) {
       <div class="absolute bottom-3 left-4 flex flex-wrap gap-3 text-[11px] text-slate-300">
         <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-[#f25555]"></span>Dangereux</span>
         <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-[#e0950a]"></span>Suspect</span>
+        <span v-if="scope === 'all'" class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-[#12a877]"></span>Sans danger</span>
         <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-cyan-400"></span>Cible : Cameroun</span>
       </div>
       <p v-if="data && !markers.length" class="absolute inset-0 grid place-items-center text-sm text-slate-400">
@@ -189,6 +199,10 @@ function place(p: ThreatPoint) {
       <div class="stat"><b>{{ totals.hits }}</b><span>détections</span></div>
       <div class="stat"><b>{{ totals.unlocated }}</b><span>domaines hors ligne / non localisés</span></div>
     </div>
+    <p v-if="data && totals.unlocated" class="px-5 pt-3 text-[11px] text-slate-500">
+      Un domaine « hors ligne » n'a plus d'adresse IP (site fermé, domaine inventé ou expiré) : il reste listé ci-dessous mais ne peut pas être placé sur la carte.
+      {{ data.analyses_scanned }} analyses examinées.
+    </p>
     <p v-if="error" class="px-5 py-3 text-sm text-red-300">{{ error }}</p>
 
     <!-- Results -->
@@ -221,6 +235,10 @@ function place(p: ThreatPoint) {
 .arc { fill: none; stroke-width: 1.3; stroke-dasharray: 5 7; opacity: 0.55; animation: travel 1.6s linear infinite; }
 .arc.phishing { stroke: #f25555; }
 .arc.suspicious { stroke: #e0950a; }
+.arc.safe { stroke: #12a877; opacity: 0.25; animation: none; }
+.bolt.safe { display: none; }
+.dot.safe { fill: #12a877; }
+.pulse.safe { stroke: #12a877; animation: none; opacity: 0; }
 .arc.hot { stroke-width: 2.4; opacity: 1; }
 .bolt.phishing { fill: #fecaca; filter: drop-shadow(0 0 4px #f25555); }
 .bolt.suspicious { fill: #fde68a; filter: drop-shadow(0 0 4px #e0950a); }
