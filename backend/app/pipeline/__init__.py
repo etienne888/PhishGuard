@@ -60,6 +60,11 @@ def _rules_signal(msg: ParsedMessage, whitelist: dict):
         if word in lower:
             evidence.append(f"Demande d'information confidentielle : « {word} »")
             score += 10
+    for word in ("frais de dossier", "frais d'inscription", "envoyez", "réclamer", "reclamer"):
+        if word in lower:
+            evidence.append(f"Paiement demandé à l'avance : « {word} »")
+            score += 20
+            break
 
     sender_check = check_domain(msg.sender_domain, whitelist)
     if sender_check["status"] == "whitelisted":

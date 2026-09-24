@@ -33,6 +33,10 @@ tldextract==5.1.2
 
 # Validation
 email-validator==2.0.0
+pydantic>=2.7
+
+# AI analysis (app/pipeline/ai_analyzer.py)
+anthropic>=1.8.0
 
 # Testing
 pytest==7.4.2

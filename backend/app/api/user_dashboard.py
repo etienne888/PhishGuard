@@ -23,16 +23,25 @@ def _analysis_status(verdict: str) -> str:
     return 'safe'
 
 
-def _indicators(analysis: Analysis) -> list[object]:
-    if isinstance(analysis.indicators, list):
-        return analysis.indicators
-    if isinstance(analysis.indicators, str):
+def _details(analysis: Analysis) -> dict:
+    """
+    Stored analysis details. v2 scans store a dict
+    ({evidence, level, signals, weights, overrides, ai, recommendation});
+    older rows store a bare list of indicator strings.
+    """
+    raw = analysis.indicators
+    if isinstance(raw, str):
         try:
-            decoded = json.loads(analysis.indicators)
-            return decoded if isinstance(decoded, list) else []
+            raw = json.loads(raw)
         except json.JSONDecodeError:
-            return []
-    return []
+            raw = []
+    if isinstance(raw, dict):
+        return raw
+    return {'evidence': raw if isinstance(raw, list) else []}
+
+
+def _indicators(analysis: Analysis) -> list[object]:
+    return _details(analysis).get('evidence', [])
 
 
 def _message(analysis: Analysis) -> dict:
@@ -162,6 +171,96 @@ def security_check():
         'last_login': current_user.last_login.isoformat() if current_user.last_login else None,
         'account_locked': bool(current_user.locked_until and current_user.locked_until > datetime.utcnow()),
     })
+
+
+def _analysis_detail(analysis: Analysis) -> dict:
+    details = _details(analysis)
+    return {
+        **_message(analysis),
+        'text': analysis.text_source,
+        'urls': analysis.urls or [],
+        'evidence': details.get('evidence', []),
+        'level': details.get('level'),
+        'signals': details.get('signals'),
+        'weights': details.get('weights'),
+        'overrides': details.get('overrides', []),
+        'ai': details.get('ai'),
+        'recommendation': details.get('recommendation'),
+    }
+
+
+@user_dashboard_bp.route('/analyses', methods=['GET'])
+@login_required
+def list_analyses():
+    """Full history with search, verdict filter and pagination."""
+    page = max(1, request.args.get('page', default=1, type=int))
+    per_page = min(50, max(1, request.args.get('per_page', default=10, type=int)))
+    status = request.args.get('status')
+    q = (request.args.get('q') or '').strip()
+
+    query = _user_analyses()
+    if status == 'phishing':
+        query = query.filter(Analysis.verdict.in_(['phishing', 'Critical', 'High']))
+    elif status == 'suspicious':
+        query = query.filter(Analysis.verdict.in_(['suspicious', 'Medium']))
+    elif status == 'safe':
+        query = query.filter(Analysis.verdict.notin_(['phishing', 'Critical', 'High', 'suspicious', 'Medium']))
+    if q:
+        like = f'%{q}%'
+        query = query.filter(db.or_(Analysis.text_source.ilike(like), Analysis.subject.ilike(like),
+                                    Analysis.email_from.ilike(like)))
+
+    total = query.count()
+    rows = query.order_by(Analysis.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    return ok({'items': [_message(a) for a in rows], 'total': total, 'page': page, 'per_page': per_page})
+
+
+@user_dashboard_bp.route('/analyses/<int:analysis_id>', methods=['GET'])
+@login_required
+def get_analysis(analysis_id: int):
+    analysis = _user_analyses().filter_by(id=analysis_id).first()
+    if not analysis:
+        return err('NOT_FOUND', 'Analyse introuvable.', 404)
+    return ok(_analysis_detail(analysis))
+
+
+@user_dashboard_bp.route('/notifications', methods=['GET'])
+@login_required
+def notifications():
+    """
+    Notifications derived from the user's analyses (threats and suspicious
+    messages from the last 30 days) plus a welcome/learning tip.
+    Read state is kept per browser on the client.
+    """
+    since = datetime.utcnow() - timedelta(days=30)
+    rows = (_user_analyses()
+            .filter(Analysis.created_at >= since)
+            .order_by(Analysis.created_at.desc()).limit(30).all())
+    items = []
+    for a in rows:
+        status = _analysis_status(a.verdict)
+        if status == 'safe':
+            continue
+        details = _details(a)
+        items.append({
+            'id': f'analysis-{a.id}',
+            'analysis_id': a.id,
+            'type': 'threat' if status == 'phishing' else 'warning',
+            'title': 'Menace détectée' if status == 'phishing' else 'Message suspect',
+            'body': (details.get('ai') or {}).get('recommendation') or details.get('recommendation')
+                    or f"Score de risque {round(float(a.score_risk))}/100 : {a.text_source[:90]}",
+            'created_at': a.created_at.isoformat() if a.created_at else None,
+        })
+    if not current_user.mfa_active:
+        items.append({
+            'id': 'tip-mfa',
+            'analysis_id': None,
+            'type': 'tip',
+            'title': 'Protégez votre compte',
+            'body': "Activez la double authentification (code OTP) dans Paramètres › Sécurité.",
+            'created_at': current_user.created_at.isoformat() if current_user.created_at else None,
+        })
+    return ok({'items': items})
 
 
 @user_dashboard_bp.route('/messages/<int:analysis_id>/explanation', methods=['GET'])

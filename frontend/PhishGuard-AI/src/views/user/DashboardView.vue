@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import Navbar from "@/components/Navbar.vue";
 import DashboardStats from "@/components/DashboardStats.vue";
+import Analyzer from '@/components/Analyzer.vue';
 import EmptyState from '@/components/states/EmptyState.vue';
 import ErrorState from '@/components/states/ErrorState.vue';
 import LoadingState from '@/components/states/LoadingState.vue';
@@ -15,7 +15,6 @@ import { useUserDashboardStore } from '@/stores/userDashboard';
    ============================================================ */
 const activeTab = ref('overview');
 const { t } = useI18n();
-const router = useRouter();
 const notifications = useNotificationsStore();
 const dashboardStore = useUserDashboardStore();
 const loading = computed(() => dashboardStore.isLoading);
@@ -61,7 +60,13 @@ const formatDateTime = (value: string | null) => value
   : '—';
 
 /* ---- Actions ---- */
-const analyzeMessage = () => router.push({ name: 'home', hash: '#analyze' });
+const showAnalyzer = ref(false);
+const analyzeMessage = () => {
+  activeTab.value = 'overview';
+  showAnalyzer.value = !showAnalyzer.value;
+};
+// The analysis is saved under the logged-in user; reload stats so it shows up at once
+const onAnalyzed = () => dashboardStore.load(selectedPeriod.value, true);
 
 const reportThreat = async (messageId: number) => {
   if (confirm('Voulez-vous signaler ce message aux autorités ?')) {
@@ -382,6 +387,15 @@ onMounted(() => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- ===== IN-DASHBOARD ANALYZER (v2 pipeline) ===== -->
+          <div v-if="showAnalyzer" class="rounded-2xl bg-white border border-slate-200 p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-lg font-bold text-slate-800">Analyser un message</h2>
+              <button class="text-sm text-slate-400 hover:text-slate-600" @click="showAnalyzer = false">Fermer ✕</button>
+            </div>
+            <Analyzer embedded @analyzed="onAnalyzed" />
           </div>
 
           <!-- ===== PLATFORM SUMMARY KPIs ===== -->

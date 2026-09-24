@@ -55,7 +55,10 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     const response = await fetch(url, {
       ...init,
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+      // FormData (file uploads) must let the browser set its own multipart boundary
+      headers: init.body instanceof FormData
+        ? { ...(init.headers ?? {}) }
+        : { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
       signal: controller.signal,
     })
     const body = (await response.json().catch(() => ({}))) as ApiEnvelope<T> & ApiErrorEnvelope

@@ -1,4 +1,5 @@
 import { api } from './api'
+import { ApiError, apiFetch } from './http'
 import type { AnalysisResult, AnalysisIndicator, AnalysisVerdict } from '@/types'
 
 const SUSPICIOUS_TLDS = ['.tk', '.ga', '.ml', '.cf', '.gq']
@@ -67,19 +68,77 @@ function heuristicAnalyze(text: string): AnalysisResult {
   }
 }
 
+/** Shape returned by POST /api/v2/scan (see backend/app/pipeline). */
+interface ScanResponse {
+  score: number
+  verdict: string
+  level: AnalysisResult['level']
+  signals: AnalysisResult['signals']
+  weights: AnalysisResult['weights']
+  overrides: string[]
+  evidence: string[]
+  recommendation: string
+  ai: AnalysisResult['ai']
+  analysis_id?: number
+  message: { sender: string | null; subject: string | null }
+}
+
+// The AI signal can take a few seconds; the default 10 s timeout is too tight
+const SCAN_TIMEOUT_MS = 30_000
+
+function fromScan(scan: ScanResponse): AnalysisResult {
+  return {
+    score: Number(scan.score ?? 0),
+    verdict: normalizeVerdict(scan.verdict),
+    level: scan.level,
+    indicators: (scan.evidence ?? []).map((label) => ({
+      label,
+      positive: label.startsWith('Expéditeur officiel'),
+    })),
+    signals: scan.signals,
+    weights: scan.weights,
+    overrides: scan.overrides ?? [],
+    recommendation: scan.recommendation,
+    ai: scan.ai,
+    analysisId: scan.analysis_id,
+    sender: scan.message?.sender,
+    subject: scan.message?.subject,
+    analyzedAt: new Date().toISOString(),
+  }
+}
+
+function isUnreachable(error: unknown) {
+  return error instanceof ApiError && (error.code === 'NETWORK' || error.code === 'TIMEOUT')
+}
+
 export const analysisService = {
   async analyzeMessage(text: string): Promise<AnalysisResult> {
     try {
-      const result = await api.post<AnalysisResult>('/analysis/message', { text })
-      return {
-        ...result,
-        verdict: normalizeVerdict(result?.verdict),
-        score: Number(result?.score ?? 0)
-      }
-    } catch {
-      // Backend unreachable — fall back to local heuristic so the UI stays usable.
-      return heuristicAnalyze(text)
+      const scan = await apiFetch<ScanResponse>('/v2/scan', {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+        timeoutMs: SCAN_TIMEOUT_MS,
+        silent: true,
+      })
+      return fromScan(scan)
+    } catch (error) {
+      // Only fall back when the backend is unreachable; real errors (e.g. a
+      // too-short message) must reach the user. The UI flags offline results.
+      if (isUnreachable(error)) return { ...heuristicAnalyze(text), offline: true }
+      throw error
     }
+  },
+
+  async analyzeEmlFile(file: File): Promise<AnalysisResult> {
+    const form = new FormData()
+    form.append('file', file)
+    const scan = await apiFetch<ScanResponse>('/v2/scan', {
+      method: 'POST',
+      body: form,
+      timeoutMs: SCAN_TIMEOUT_MS,
+      silent: true,
+    })
+    return fromScan(scan)
   },
 
   async reportMessage(text: string, result: AnalysisResult): Promise<{ reported: boolean }> {

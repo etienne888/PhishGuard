@@ -23,6 +23,7 @@ export function useAnalysis() {
             }
         ],
         analyze: analysisStore.analyze,
+        analyzeFile: analysisStore.analyzeFile,
         reset: analysisStore.reset,
         report: analysisStore.report,
     }

@@ -109,6 +109,8 @@ def create_app():
     from app.api.otp import otp_bp
     from app.api.user_dashboard import user_dashboard_bp
     from app.api.verification import verification_bp
+    from app.api.scan import scan_bp
+    from app.api.user_profile import user_profile_bp
     from app.models import User
 
     @login_manager.user_loader
@@ -135,5 +137,7 @@ def create_app():
     app.register_blueprint(otp_bp, url_prefix='/api/otp')
     app.register_blueprint(user_dashboard_bp, url_prefix='/api/user')
     app.register_blueprint(verification_bp, url_prefix='/api/verification')
+    app.register_blueprint(scan_bp, url_prefix='/api/v2')
+    app.register_blueprint(user_profile_bp, url_prefix='/api/user')
     
     return app

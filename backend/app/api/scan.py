@@ -32,13 +32,21 @@ def scan():
     except ParseError as exc:
         return jsonify({'error': {'code': 'invalid_input', 'message': str(exc)}}), 400
 
+    # Dashboards count 'phishing' / 'suspicious' / 'legitimate'; keep the 4-level
+    # risk level (Critical/High/Medium/Low) in the response as `level`.
+    result['level'] = result['verdict']
+    result['verdict'] = {'Critical': 'phishing', 'High': 'phishing',
+                         'Medium': 'suspicious'}.get(result['level'], 'legitimate')
+
     msg = result['message']
     analysis = Analysis(
         user_id=current_user.id if current_user.is_authenticated else None,
         text_source=(request.get_json(silent=True) or {}).get('text', '')[:1000] or (msg.get('subject') or '.eml'),
         score_risk=result['score'],
         verdict=result['verdict'],
-        indicators=json.dumps(result['evidence']),
+        # Full explanation, so the dashboard can re-open any past analysis
+        indicators=json.dumps({key: result.get(key) for key in (
+            'evidence', 'level', 'signals', 'weights', 'overrides', 'ai', 'recommendation')}),
         email_from=(msg.get('sender') or '')[:255] or None,
         subject=(msg.get('subject') or '')[:255] or None,
         urls=[u['url'] for u in result['urls']],
