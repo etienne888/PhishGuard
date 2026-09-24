@@ -52,8 +52,9 @@
                 >
                     <component :is="item.icon" class="w-[18px] h-[18px] flex-shrink-0" />
                     <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
+                    <span v-if="item.demo && !isCollapsed" class="ml-auto rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-400 dark:bg-slate-800">Démo</span>
                     <span
-                    v-if="item.badge && !isCollapsed"
+                    v-else-if="item.badge && !isCollapsed"
                     class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full"
                     :class="(item as { badgeTone?: string }).badgeTone === 'danger' ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'"
                     >{{ item.badge }}</span>
@@ -159,15 +160,16 @@
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
                     </svg>
-                    <span class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">3</span>
+                    <span v-if="unreadAlerts" class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">{{ unreadAlerts }}</span>
                 </button>
                 <div v-if="showNotifications" class="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
                     <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800">
-                    <span class="text-sm font-semibold">Notifications</span>
-                    <button class="text-xs text-blue-600 hover:underline">Tout marquer lu</button>
+                    <span class="text-sm font-semibold">Alertes en direct</span>
+                    <button class="text-xs text-blue-600 hover:underline" @click="ops.load()">Actualiser</button>
                     </div>
                     <div class="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-                    <div v-for="n in notifications" :key="n.id" class="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <p v-if="!notifications.length" class="p-4 text-center text-sm text-slate-400">Aucune alerte. Tout est calme.</p>
+                    <div v-for="n in notifications" :key="n.id" class="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50" :class="{ 'cursor-pointer': n.to }" @click="openNotification(n)">
                         <div class="flex items-start gap-2">
                         <span class="w-2 h-2 rounded-full mt-1.5" :class="n.tone === 'critical' ? 'bg-red-500' : n.tone === 'high' ? 'bg-orange-500' : 'bg-blue-500'" />
                         <div class="min-w-0">
@@ -212,6 +214,10 @@
         <!-- PAGE CONTENT -->
         <main class="pt-6 pb-16 px-4">
             <div class="max-w-[1400px] mx-auto">
+            <div v-if="route.meta.demo" class="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                <span>🧪</span>
+                <span><b>Données de démonstration.</b> Cet écran n'est pas encore relié aux données réelles de la plateforme : les chiffres affichés sont des exemples.</span>
+            </div>
             <router-view />
             </div>
         </main>
@@ -265,6 +271,9 @@
     import { ref, computed, onMounted, onBeforeUnmount, h } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { useAuth } from '@/composables'
+    import { useAdminOpsStore } from '@/stores/adminOps'
+    import { useTheme } from '@/composables/useTheme'
+    import { timeAgo } from '@/utils/risk'
 
     const route = useRoute()
     const router = useRouter()
@@ -282,7 +291,7 @@
     const showProfile = ref(false)
     const searchOpen = ref(false)
     const searchQuery = ref('')
-    const isDark = ref(false)
+    const { isDark, toggleTheme } = useTheme()
 
     /* ---------- Icon helpers (inline SVG so we don't add deps) ---------- */
     const Icon = (paths: string) => () => h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, paths.split('|').map(d => h('path', { d })))
@@ -297,50 +306,70 @@
     const IconHealth = Icon('M22 12h-4l-3 9L9 3l-3 9H2')
     const IconIntegrations = Icon('M9 3H5a2 2 0 0 0-2 2v4|M15 3h4a2 2 0 0 1 2 2v4|M9 21H5a2 2 0 0 1-2-2v-4|M15 21h4a2 2 0 0 0 2-2v-4|M9 12h6')
 
-    const navGroups = [
+    const IconWhitelist = Icon('M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z|M9 12l2 2 4-4')
+
+    // Live numbers for badges and the bell (same store as the command centre)
+    const ops = useAdminOpsStore()
+    let opsTimer: number | undefined
+
+    type NavItem = { path: string; label: string; icon: unknown; badge?: string | number; badgeTone?: string; demo?: boolean }
+    const navGroups = computed<Array<{ label: string; items: NavItem[] }>>(() => {
+    const pending = ops.overview?.review.pending ?? 0
+    return [
     {
-        label: 'Supervision',
+        label: 'Commande',
         items: [
-        { path: '/admin', label: 'Aperçu SOC', icon: IconOverview },
-        { path: '/admin/incidents', label: 'Incidents', icon: IconIncidents, badge: '3', badgeTone: 'danger' },
+        { path: '/admin', label: 'Centre de commande', icon: IconOverview },
+        { path: '/admin/reports', label: 'Signalements', icon: IconReports, badge: pending || undefined, badgeTone: ops.overview?.review.reported ? 'danger' : undefined },
+        { path: '/admin/users', label: 'Utilisateurs', icon: IconUsers, badge: ops.overview?.users.total },
+        { path: '/admin/whitelist', label: 'Liste blanche', icon: IconWhitelist, badge: ops.overview?.engine.whitelist_domains },
         ],
     },
     {
-        label: 'Opérations',
+        label: 'Renseignement (démo)',
         items: [
-        { path: '/admin/reports', label: 'Signalements', icon: IconReports, badge: '12' },
-        { path: '/admin/threat-intel', label: 'Threat Intelligence', icon: IconIntel },
-        { path: '/admin/users', label: 'Utilisateurs', icon: IconUsers },
-        ],
-    },
-    {
-        label: 'Intelligence Artificielle',
-        items: [
-        { path: '/admin/models', label: 'AI Engine', icon: IconModels, badge: 'v2.4.1' },
+        { path: '/admin/incidents', label: 'Incidents', icon: IconIncidents, demo: true },
+        { path: '/admin/threat-intel', label: 'Threat Intelligence', icon: IconIntel, demo: true },
+        { path: '/admin/models', label: 'Moteur IA', icon: IconModels, demo: true },
         ],
     },
     {
         label: 'Plateforme',
         items: [
-        { path: '/admin/integrations', label: 'Intégrations', icon: IconIntegrations },
-        { path: '/admin/health', label: 'Santé Système', icon: IconHealth },
-        { path: '/admin/audit', label: 'Audit', icon: IconAudit },
         { path: '/admin/settings', label: 'Paramètres', icon: IconSettings },
+        { path: '/admin/integrations', label: 'Intégrations', icon: IconIntegrations, demo: true },
+        { path: '/admin/health', label: 'Santé Système', icon: IconHealth, demo: true },
+        { path: '/admin/audit', label: 'Audit', icon: IconAudit, demo: true },
         ],
     },
     ]
+    })
 
-    const notifications = [
-    { id: 1, tone: 'critical', title: 'Campagne phishing détectée', detail: '18 utilisateurs ciblés — MTN Mobile Money', time: 'il y a 3 min' },
-    { id: 2, tone: 'high', title: 'Nouveau signalement confirmé', detail: 'mtn-secure-cm.tk bloqué par admin', time: 'il y a 27 min' },
-    { id: 3, tone: 'info', title: 'Modèle ML v2.4.1 déployé', detail: 'Précision 94.7% • F1 93.5%', time: 'il y a 2 h' },
-    ]
+    const notifications = computed(() => {
+    const d = ops.overview
+    if (!d) return []
+    const list: Array<{ id: string; tone: string; title: string; detail: string; time: string; to?: string; analysisId?: number }> = []
+    if (d.review.reported) list.push({ id: 'reported', tone: 'critical', title: `${d.review.reported} signalement(s) en attente`, detail: 'Signalés par les usagers — décision requise', time: 'maintenant', to: '/admin/reports' })
+    if (d.review.pending - d.review.reported > 0) list.push({ id: 'borderline', tone: 'high', title: `${d.review.pending - d.review.reported} verdict(s) incertain(s)`, detail: 'Score entre 40 et 70 — votre avis aide le modèle', time: 'maintenant', to: '/admin/reports' })
+    for (const a of d.latest.filter((x) => x.status === 'phishing').slice(0, 4)) {
+        list.push({ id: `a${a.id}`, tone: 'critical', title: 'Menace détectée', detail: `${a.preview.slice(0, 60)} — ${a.source}`, time: timeAgo(a.received_at), to: '/admin/reports' })
+    }
+    if (!d.engine.ai_enabled) list.push({ id: 'ai', tone: 'info', title: "Analyse IA désactivée", detail: 'Ajoutez ANTHROPIC_API_KEY dans backend/.env', time: '' })
+    return list
+    })
+    const unreadAlerts = computed(() => notifications.value.filter((n) => n.tone === 'critical').length)
+
+    function openNotification(n: { to?: string }) {
+    showNotifications.value = false
+    if (n.to) router.push(n.to)
+    }
 
     const pageTitle = computed(() => {
     const map: Record<string, string> = {
-        '/admin': 'Security Operations Center',
+        '/admin': 'Centre de commande',
         '/admin/users': 'Utilisateurs',
-        '/admin/reports': 'Signalements',
+        '/admin/reports': 'Signalements & revue',
+        '/admin/whitelist': 'Liste blanche',
         '/admin/threat-intel': 'Threat Intelligence',
         '/admin/models': 'AI Engine',
         '/admin/audit': 'Journal d\'audit',
@@ -390,13 +419,16 @@
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openSearch() }
     if (e.key === 'Escape') { searchOpen.value = false; showNotifications.value = false; showProfile.value = false }
     }
-    function toggleTheme() {
-    isDark.value = !isDark.value
-    document.documentElement.classList.toggle('dark', isDark.value)
-    }
 
-    onMounted(() => window.addEventListener('keydown', onKey))
-    onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+    onMounted(() => {
+    window.addEventListener('keydown', onKey)
+    void ops.load()
+    opsTimer = window.setInterval(() => void ops.load(), 30_000)
+    })
+    onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKey)
+    window.clearInterval(opsTimer)
+    })
 
     const handleLogout = async () => {
     await logout()

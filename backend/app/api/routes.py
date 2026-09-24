@@ -2,7 +2,7 @@
 import os
 from time import perf_counter
 
-from flask import Blueprint, current_app, request
+from flask import Blueprint, current_app, jsonify, request
 from flask_login import login_required, current_user
 from sqlalchemy import text
 
@@ -86,11 +86,24 @@ def analysis_message_compat():
 
 @api_bp.route('/analysis/report', methods=['POST'])
 def analysis_report_compat():
+    """Flag an analysis for admin review (landing page, visitors included)."""
     data = request.get_json() or {}
-    text = data.get('text', '')
-    result = data.get('result')
-    if not text or not result:
+    result = data.get('result') or {}
+    analysis_id = result.get('analysisId') or data.get('analysis_id')
+    if not analysis_id:
         return jsonify({'reported': False}), 400
+
+    analysis = db.session.get(Analysis, int(analysis_id))
+    # Visitors may only flag anonymous analyses; users only their own
+    owner_ok = analysis is not None and (
+        analysis.user_id is None
+        or (current_user.is_authenticated and analysis.user_id == current_user.id))
+    if not owner_ok:
+        return jsonify({'reported': False}), 404
+    if analysis.reported_at is None:
+        analysis.reported_at = datetime.utcnow()
+        analysis.report_note = (data.get('note') or '')[:1000] or None
+        db.session.commit()
     return jsonify({'reported': True}), 200
 
 

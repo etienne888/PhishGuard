@@ -25,7 +25,8 @@ class User(UserMixin, db.Model):
     locked_until = db.Column(db.DateTime, nullable=True)
     
     # Relationships
-    analyses = db.relationship('Analysis', backref='user', lazy=True)
+    # analyses.reviewed_by also points at users, so name the owning key explicitly
+    analyses = db.relationship('Analysis', backref='user', lazy=True, foreign_keys='Analysis.user_id')
     
     def get_id(self):
         return str(self.id)
@@ -43,6 +44,13 @@ class Analysis(db.Model):
     subject = db.Column(db.String(255), nullable=True)
     urls = db.Column(db.JSON, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Review queue (database/scripts/07_review_queue.sql)
+    reported_at = db.Column(db.DateTime, nullable=True)
+    report_note = db.Column(db.Text, nullable=True)
+    review_label = db.Column(db.String(20), nullable=True)  # admin ground truth: 'phishing' | 'safe'
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    review_note = db.Column(db.Text, nullable=True)
 
 class WhitelistDomain(db.Model):
     __tablename__ = 'whitelist_domains'

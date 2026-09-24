@@ -16,6 +16,13 @@ from email.utils import parseaddr
 from html import unescape
 
 URL_RE = re.compile(r"(?:https?://|www\.)[^\s<>\"')\]]+", re.IGNORECASE)
+# Links typed without http/www ("mtn-verify.tk/login"). Limited to TLDs common in
+# scams so ordinary words with a dot ("fichier.txt", "M.Dupont") are not taken as links.
+BARE_DOMAIN_RE = re.compile(
+    r"(?<![@\w.-])((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+"
+    r"(?:com|net|org|info|biz|cm|tk|ga|ml|cf|gq|xyz|top|icu|buzz|click|online|site|live|shop|ly|me|co)"
+    r")(?![\w-])(/[^\s<>\"')\]]*)?",
+    re.IGNORECASE)
 
 
 class ParseError(ValueError):
@@ -41,6 +48,11 @@ def extract_urls(text: str) -> list[str]:
         url = url.rstrip(".,;:!?")
         if url not in seen:
             seen.append(url)
+    # Bare domains not already part of an http/www link
+    for host, path in BARE_DOMAIN_RE.findall(text or ""):
+        candidate = (host + (path or "")).rstrip(".,;:!?")
+        if not any(host.lower() in existing.lower() for existing in seen):
+            seen.append(candidate)
     return seen[:20]
 
 

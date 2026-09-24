@@ -55,7 +55,9 @@ def _message(analysis: Analysis) -> dict:
         'score': round(float(analysis.score_risk), 2),
         'threat_type': 'Phishing' if status == 'phishing' else 'Message suspect' if status == 'suspicious' else 'Aucune menace',
         'preview': analysis.text_source[:160],
-        'reported_at': None,
+        'reported_at': analysis.reported_at.isoformat() if analysis.reported_at else None,
+        # Admin decision, so users can follow what happened to their report
+        'review_label': analysis.review_label,
     }
 
 
@@ -160,7 +162,11 @@ def report_message(analysis_id: int):
     analysis = _user_analyses().filter_by(id=analysis_id).first()
     if not analysis:
         return err('NOT_FOUND', 'Message introuvable.', 404)
-    return ok({'id': analysis.id, 'reported_at': datetime.utcnow().isoformat()})
+    if analysis.reported_at is None:
+        analysis.reported_at = datetime.utcnow()
+        analysis.report_note = ((request.get_json(silent=True) or {}).get('note') or '')[:1000] or None
+        db.session.commit()
+    return ok({'id': analysis.id, 'reported_at': analysis.reported_at.isoformat()})
 
 
 @user_dashboard_bp.route('/dashboard/security-check', methods=['POST'])

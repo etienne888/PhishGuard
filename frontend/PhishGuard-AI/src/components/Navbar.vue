@@ -3,6 +3,7 @@
     import { useRouter } from 'vue-router'
     import AppLogo from './AppLogo.vue'
     import { useAuth } from '@/composables'
+    import { useTheme } from '@/composables/useTheme'
     import { useI18n } from '@/i18n'
     import { useHealthStore } from '@/stores/health'
 
@@ -21,27 +22,14 @@
         { href: '#about', key: 'nav.about' as const }
     ]
 
-    // ---- dark mode toggle (opt-in, persisted) ----
-    const isDark = ref(false)
-
-    function applyTheme(dark: boolean) {
-        document.documentElement.classList.toggle('dark', dark)
-    }
-
-    function toggleTheme() {
-        isDark.value = !isDark.value
-        localStorage.setItem('pg-theme', isDark.value ? 'dark' : 'light')
-        applyTheme(isDark.value)
-    }
+    // Dark mode: shared with the admin header (persisted in localStorage)
+    const { isDark, toggleTheme } = useTheme()
 
     function changeLocale(event: Event) {
         setLocale((event.target as HTMLSelectElement).value as typeof locale.value)
     }
 
     onMounted(() => {
-        const stored = localStorage.getItem('pg-theme')
-        isDark.value = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
-        applyTheme(isDark.value)
         document.addEventListener('click', handleOutsideClick)
         void healthStore.refresh()
     })

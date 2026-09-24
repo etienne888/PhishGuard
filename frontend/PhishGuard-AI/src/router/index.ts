@@ -36,14 +36,16 @@ const router = createRouter({
       component: () => import('@/views/admin/AdminLayout.vue'),
       children: [
         { path: '', name: 'admin-overview', component: () => import('@/views/admin/Overview.vue') },
-        { path: 'incidents', name: 'admin-incidents', component: () => import('@/views/admin/Incidents.vue') },
         { path: 'users', name: 'admin-users', component: () => import('@/views/admin/UserManagement.vue') },
-        { path: 'reports', name: 'admin-reports', component: () => import('@/views/admin/ThreatReports.vue') },
-        { path: 'threat-intel', name: 'admin-threat-intel', component: () => import('@/views/admin/ThreatIntelligence.vue') },
-        { path: 'models', name: 'admin-models', component: () => import('@/views/admin/MLModelManagement.vue') },
-        { path: 'integrations', name: 'admin-integrations', component: () => import('@/views/admin/Integrations.vue') },
-        { path: 'health', name: 'admin-health', component: () => import('@/views/admin/Health.vue') },
-        { path: 'audit', name: 'admin-audit', component: () => import('@/views/admin/AuditLog.vue') },
+        { path: 'reports', name: 'admin-reports', component: () => import('@/views/admin/ReviewQueue.vue') },
+        { path: 'whitelist', name: 'admin-whitelist', component: () => import('@/views/admin/Whitelist.vue') },
+        // meta.demo: screen still shows sample data (AdminLayout shows a banner)
+        { path: 'incidents', name: 'admin-incidents', meta: { demo: true }, component: () => import('@/views/admin/Incidents.vue') },
+        { path: 'threat-intel', name: 'admin-threat-intel', meta: { demo: true }, component: () => import('@/views/admin/ThreatIntelligence.vue') },
+        { path: 'models', name: 'admin-models', meta: { demo: true }, component: () => import('@/views/admin/MLModelManagement.vue') },
+        { path: 'integrations', name: 'admin-integrations', meta: { demo: true }, component: () => import('@/views/admin/Integrations.vue') },
+        { path: 'health', name: 'admin-health', meta: { demo: true }, component: () => import('@/views/admin/Health.vue') },
+        { path: 'audit', name: 'admin-audit', meta: { demo: true }, component: () => import('@/views/admin/AuditLog.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/Settings.vue') }
       ]
     }

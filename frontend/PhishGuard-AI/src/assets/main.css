@@ -1,6 +1,27 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
+/* Tailwind v4 defaults `dark:` to the OS setting; drive it from the .dark class
+   that the theme toggle (src/composables/useTheme.ts) puts on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Dark fallbacks for screens styled light-only (user dashboard, drawers, analyzer).
+   Screens with explicit dark: classes look the same, as these use the same palette. */
+.dark .bg-white { background-color: #0f172a; }
+.dark .bg-slate-50, .dark .bg-slate-50\/80 { background-color: #020617; }
+.dark .bg-slate-100 { background-color: #1e293b; }
+.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12); }
+.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.12); }
+.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.12); }
+.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.12); }
+.dark .border-slate-100, .dark .border-slate-200, .dark .divide-slate-100 > * + * { border-color: #1e293b; }
+.dark .text-slate-800, .dark .text-slate-700 { color: #e2e8f0; }
+.dark .text-slate-600 { color: #cbd5e1; }
+.dark .text-blue-900 { color: #bfdbfe; }
+.dark .text-amber-800, .dark .text-amber-700 { color: #fcd34d; }
+.dark textarea, .dark input, .dark select { background-color: transparent; color: #e2e8f0; }
+.dark .hover\:bg-slate-50:hover, .dark .hover\:bg-slate-100:hover { background-color: #1e293b; }
+
 @layer base {
   html {
     scroll-behavior: smooth;
