@@ -122,8 +122,8 @@ export const geoService = {
   myOrigins: (days = 90) => apiFetch<{ points: MyOriginPoint[]; hidden: number }>(`/user/origins?days=${days}`, { silent: true }),
 }
 
-/** Country code -> flag emoji ("CM" -> 🇨🇲) */
-export function flag(code?: string | null) {
-  if (!code || code.length !== 2) return '🌐'
-  return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 0x1f1a5 + c.charCodeAt(0)))
+/** Flag as an HTML <img> string, for Leaflet tooltips (components use CountryFlag.vue) */
+export function flagHtml(code?: string | null) {
+  if (!code || code.length !== 2) return ''
+  return `<img src="https://flagcdn.com/w40/${code.toLowerCase()}.png" width="16" height="12" alt="" style="display:inline-block;border-radius:2px;vertical-align:-1px;margin-right:4px">`
 }

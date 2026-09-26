@@ -6,9 +6,10 @@
  */
 import { computed } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import CountryFlag from '@/components/ui/CountryFlag.vue'
 import type { IconName } from '@/components/ui/icons'
 import GeoMap from '@/components/map/GeoMap.vue'
-import { flag, type OriginPublic } from '@/services/geo.service'
+import type { OriginPublic } from '@/services/geo.service'
 import { useI18n } from '@/i18n'
 
 const props = defineProps<{ origin: OriginPublic }>()
@@ -46,7 +47,7 @@ const circle = computed(() => (hidden.value ? [] : [{
     <!-- Facts -->
     <div class="space-y-2.5 md:col-span-2">
       <p v-if="!hidden" class="flex items-start gap-2 text-sm">
-        <span class="text-lg leading-none">{{ flag(origin.country_code) }}</span>
+        <CountryFlag :code="origin.country_code" :size="20" class="mt-0.5" />
         <span><b class="text-slate-800 dark:text-white">{{ t('geo.around', { place }) }}</b>
           <span class="block text-xs text-slate-500">{{ t('geo.radius', { km: origin.accuracy_km ?? '?' }) }}</span></span>
       </p>

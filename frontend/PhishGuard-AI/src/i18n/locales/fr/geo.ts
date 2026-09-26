@@ -109,6 +109,13 @@ const geo: Messages = {
   'geo.mine.title': 'D’où viennent mes menaces ?',
   'geo.mine.subtitle': 'Zones approximatives d’envoi des emails dangereux que vous avez reçus',
   'geo.mine.hidden': '{n} masqué(s) par le webmail',
+  'geo.radar.arcs': 'Arcs d’attaque',
+  'geo.radar.tour': 'Visite automatique des foyers',
+  'geo.radar.fullscreen': 'Plein écran',
+  'geo.radar.critical': 'critiques',
+  'geo.radar.liveFeed': 'Flux en direct',
+  'geo.radar.topCountries': 'Pays sources',
+  'geo.radar.cleanMap': 'Masquer / afficher les panneaux',
 }
 
 export default geo

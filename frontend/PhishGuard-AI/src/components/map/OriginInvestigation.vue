@@ -7,9 +7,10 @@
  */
 import { computed, ref, watch } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import CountryFlag from '@/components/ui/CountryFlag.vue'
 import type { IconName } from '@/components/ui/icons'
 import GeoMap from './GeoMap.vue'
-import { flag, geoService, type OriginInvestigation } from '@/services/geo.service'
+import { geoService, type OriginInvestigation } from '@/services/geo.service'
 import { timeAgo } from '@/utils/risk'
 import { useI18n } from '@/i18n'
 
@@ -99,7 +100,7 @@ const verdictTone = (v: string) => (v === 'phishing' ? 'bg-red-500' : v === 'sus
                 <p v-if="o.provider_server" class="mt-1 font-mono text-xs text-slate-500">{{ t('geo.inv.providerServer') }} {{ o.provider_server.host }} ({{ o.provider_server.ip }})</p>
               </div>
               <div v-if="geo" class="grid gap-3 sm:grid-cols-2">
-                <div class="fact"><span>{{ t('geo.inv.place') }}</span><b>{{ flag(geo.country_code) }} {{ place }}</b></div>
+                <div class="fact"><span>{{ t('geo.inv.place') }}</span><b class="flex items-center gap-1.5"><CountryFlag :code="geo.country_code" :size="16" /> {{ place }}</b></div>
                 <div class="fact"><span>{{ t('geo.inv.accuracy') }}</span><b>± {{ o.accuracy_km }} km</b></div>
                 <div class="fact"><span>{{ t('geo.inv.isp') }}</span><b>{{ geo.isp }} <small class="text-slate-500">{{ geo.asn }}</small></b></div>
                 <div class="fact"><span>{{ t('geo.inv.network') }}</span><b>{{ t(`geo.net.${o.network_type ?? 'unknown'}`) }}</b></div>

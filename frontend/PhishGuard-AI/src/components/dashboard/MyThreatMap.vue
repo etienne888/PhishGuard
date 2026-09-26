@@ -2,8 +2,9 @@
 /** "Where do my threats come from?" - approximate origins of the user's dangerous emails (no IPs). */
 import { computed, onMounted, ref } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import CountryFlag from '@/components/ui/CountryFlag.vue'
 import GeoMap from '@/components/map/GeoMap.vue'
-import { flag, geoService, type MyOriginPoint } from '@/services/geo.service'
+import { geoService, type MyOriginPoint } from '@/services/geo.service'
 import { useI18n } from '@/i18n'
 
 const emit = defineEmits<{ open: [analysisId: number] }>()
@@ -50,7 +51,7 @@ const current = computed(() => points.value.find((p) => `${p.lat},${p.lon}` === 
     <GeoMap v-if="points.length" :points="mapPoints" :circles="circles" mode="plain" theme="light" height="240px"
             :selected-id="selected" @select="(id) => (selected = id)" />
     <div class="mt-3 flex flex-wrap gap-2">
-      <span v-for="c in countries" :key="c.name" class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">{{ flag(c.cc) }} {{ c.name }} <b>{{ c.n }}</b></span>
+      <span v-for="c in countries" :key="c.name" class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700"><CountryFlag :code="c.cc" :size="14" /> {{ c.name }} <b>{{ c.n }}</b></span>
       <span v-if="hidden" class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-500"><AppIcon name="eye" :size="12" /> {{ t('geo.mine.hidden', { n: hidden }) }}</span>
     </div>
     <ul v-if="current" class="mt-3 space-y-1">
