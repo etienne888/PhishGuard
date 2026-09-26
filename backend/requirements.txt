@@ -45,3 +45,6 @@ pytest-cov==4.1.0
 # Utilities
 python-dateutil==2.8.2
 gunicorn==21.2.0
+psutil>=5.9
+# Optional: Fernet encryption of mailbox tokens (a standard-library fallback is used otherwise)
+# cryptography>=42   (uncomment when available on your package index)

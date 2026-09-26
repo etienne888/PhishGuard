@@ -1,0 +1,51 @@
+/* Soft look shared by the login and register cards */
+.auth-card {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 24px 48px -12px rgba(30, 64, 175, 0.18);
+  background-image: linear-gradient(180deg, #f5f9ff 0%, #ffffff 140px);
+}
+
+.auth-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #1e293b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  outline: none;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.auth-input::placeholder { color: #94a3b8; }
+.auth-input:focus {
+  background: #fff;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(191, 219, 254, 0.55);
+}
+.auth-input--error,
+.auth-input--error:focus {
+  border-color: #fda4af;
+  box-shadow: 0 0 0 4px rgba(254, 205, 211, 0.5);
+}
+
+.auth-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #3b82f6, #22b8cf);
+  box-shadow: 0 8px 20px -8px rgba(59, 130, 246, 0.55);
+  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+}
+.auth-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px -8px rgba(59, 130, 246, 0.6);
+}
+.auth-btn:disabled { opacity: 0.55; cursor: not-allowed; }

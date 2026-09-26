@@ -26,7 +26,20 @@ BARE_DOMAIN_RE = re.compile(
 
 
 class ParseError(ValueError):
-    """Raised when an .eml file cannot be read (test case T-05)."""
+    """Raised when an .eml file cannot be read (test case T-05).
+
+    Carries a message key (see pipeline/i18n.py) so the endpoint can answer in
+    the user's language; str() gives the French text.
+    """
+
+    def __init__(self, key: str, **params):
+        from .i18n import tr
+        self.key, self.params = key, params
+        super().__init__(tr("fr", key, **params))
+
+    def message(self, lang: str) -> str:
+        from .i18n import tr
+        return tr(lang, self.key, **self.params)
 
 
 @dataclass
@@ -94,10 +107,10 @@ def parse_eml(raw: bytes) -> ParsedMessage:
     try:
         msg = BytesParser(policy=policy.default).parsebytes(raw)
     except Exception as exc:  # pragma: no cover - parser is very lenient
-        raise ParseError(f"Fichier .eml illisible : {exc}") from exc
+        raise ParseError("error.eml_unreadable", detail=exc) from exc
 
     if not msg.keys():
-        raise ParseError("Fichier .eml invalide : aucun en-tête trouvé.")
+        raise ParseError("error.eml_no_headers")
 
     # Forwarded email: analyse the attached original instead
     for part in msg.iter_attachments():
@@ -122,7 +135,7 @@ def parse_eml(raw: bytes) -> ParsedMessage:
 
     full_text = f"{subject}\n{body}" if subject else body
     if not full_text.strip():
-        raise ParseError("Le fichier .eml ne contient aucun texte analysable.")
+        raise ParseError("error.eml_no_text")
 
     return ParsedMessage(
         text=full_text,

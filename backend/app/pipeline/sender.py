@@ -49,6 +49,15 @@ def load_whitelist() -> dict:
     return DEFAULT_WHITELIST
 
 
+def load_blocklist() -> set:
+    """Active blocked domains (incident response / threat intel), empty if the DB is unreachable."""
+    try:
+        from app.models import BlockedDomain
+        return {row.domain.lower() for row in BlockedDomain.query.filter_by(is_active=True).all()}
+    except Exception:
+        return set()
+
+
 def registered_domain(host: str) -> str:
     """Best-effort 'example.cm' from 'a.b.example.cm' (handles gov.cm, co.uk)."""
     parts = host.lower().strip(".").split(".")

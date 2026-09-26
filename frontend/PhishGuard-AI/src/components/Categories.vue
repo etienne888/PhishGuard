@@ -6,7 +6,7 @@
     import { useI18n } from '@/i18n';
 
     const store = useCategoriesStore();
-    const { t } = useI18n();
+    const { t, tOr } = useI18n();
 
     onMounted(() => {
     if (!store.categories.length) store.fetchCategories();
@@ -56,8 +56,8 @@
             ]"
             @click="store.selectCategory(cat.id)"
             >
-            <span class="font-semibold text-sm block">{{ cat.name }}</span>
-            <p class="text-xs opacity-80 mt-1">{{ cat.description }}</p>
+            <span class="font-semibold text-sm block">{{ tOr(`category.${cat.id}.name`, cat.name) }}</span>
+            <p class="text-xs opacity-80 mt-1">{{ tOr(`category.${cat.id}.description`, cat.description) }}</p>
             </button>
         </div>
 

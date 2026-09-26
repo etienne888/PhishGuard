@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import AppLogo from "./AppLogo.vue";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 const emit = defineEmits<{ complete: [] }>();
 
@@ -32,7 +35,7 @@ onMounted(() => {
     :class="isLeaving ? 'opacity-0 pointer-events-none' : 'opacity-100'"
     role="status"
     aria-live="polite"
-    aria-label="Chargement de PhishGuard-AI"
+    :aria-label="t('preloader.loading')"
   >
     <div class="mb-5 animate-[wordFade_0.7s_ease-out_forwards]">
       <AppLogo :size="88" />
@@ -63,12 +66,12 @@ onMounted(() => {
       style="animation-delay: 1.1s"
     >
       <span class="flex items-center gap-1.5"
-        >DÉTECTER <span class="h-1.5 w-1.5 rounded-full bg-signal-green"></span
+        >{{ t('preloader.detect') }} <span class="h-1.5 w-1.5 rounded-full bg-signal-green"></span
       ></span>
       <span class="flex items-center gap-1.5"
-        >PROTÉGER <span class="h-1.5 w-1.5 rounded-full bg-signal-red"></span
+        >{{ t('preloader.protect') }} <span class="h-1.5 w-1.5 rounded-full bg-signal-red"></span
       ></span>
-      <span>SENSIBILISER</span>
+      <span>{{ t('preloader.educate') }}</span>
     </div>
 
     <div
@@ -76,7 +79,7 @@ onMounted(() => {
       style="animation-delay: 1.4s"
     >
       <span class="h-px w-9 bg-signal-green"></span>
-      <span>Contre les arnaques en ligne, pour un Cameroun plus sûr.</span>
+      <span>{{ t('preloader.tagline') }}</span>
       <span class="h-px w-9 bg-signal-yellow"></span>
     </div>
   </div>

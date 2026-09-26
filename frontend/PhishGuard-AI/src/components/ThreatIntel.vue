@@ -3,7 +3,27 @@ import { onMounted, ref, computed, onUnmounted } from 'vue'
 import { formatDate } from '@/utils'
 import { useI18n } from '@/i18n'
 
-const { t } = useI18n()
+const { t, intlLocale } = useI18n()
+
+/** Values stored as translation keys (simulated items, countries, categories) are translated on display. */
+function tr(value: string) {
+  return value.startsWith('intel.') ? t(value) : value
+}
+
+const CATEGORY_KEYS: Record<string, string> = {
+  'Phishing': 'intel.cat.phishing',
+  'Mobile Money': 'intel.cat.mobileMoney',
+  'Ransomware': 'intel.cat.ransomware',
+  'Malware': 'intel.cat.malware',
+  'Social Engineering': 'intel.cat.socialEngineering',
+  'Data Breach': 'intel.cat.dataBreach',
+  'Vulnerability': 'intel.cat.vulnerability',
+  'Cyber Attack': 'intel.cat.cyberAttack',
+  'Actualité Cyber': 'intel.cat.news',
+}
+function categoryLabel(category: string) {
+  return CATEGORY_KEYS[category] ? t(CATEGORY_KEYS[category]) : category
+}
 
 // ============================================
 // TYPES
@@ -35,12 +55,12 @@ interface SourceStatus {
 // ============================================
 
 const SOURCES = [
-  { id: 'cirt', name: 'CIRT-CM', url: 'https://cirt.cm/feed/', icon: '🛡️', country: '🇨🇲 Cameroun' },
-  { id: 'thn', name: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews', icon: '📰', country: '🌍 International' },
-  { id: 'bleeping', name: 'Bleeping Computer', url: 'https://www.bleepingcomputer.com/feed/', icon: '💻', country: '🌍 International' },
-  { id: 'cisa', name: 'CISA (USA)', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml', icon: '🇺🇸', country: '🇺🇸 USA' },
-  { id: 'digital', name: 'Digital Business Africa', url: 'https://digitalbusiness.africa/feed/', icon: '🌍', country: '🌍 Afrique' },
-  { id: 'obs', name: 'Obs Cybersécurité', url: 'https://obs-cc.org/feed', icon: '👁️', country: '🇨🇲 Cameroun' },
+  { id: 'cirt', name: 'CIRT-CM', url: 'https://cirt.cm/feed/', icon: '🛡️', country: 'intel.country.cm' },
+  { id: 'thn', name: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews', icon: '📰', country: 'intel.country.intl' },
+  { id: 'bleeping', name: 'Bleeping Computer', url: 'https://www.bleepingcomputer.com/feed/', icon: '💻', country: 'intel.country.intl' },
+  { id: 'cisa', name: 'CISA (USA)', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml', icon: '🇺🇸', country: 'intel.country.us' },
+  { id: 'digital', name: 'Digital Business Africa', url: 'https://digitalbusiness.africa/feed/', icon: '🌍', country: 'intel.country.africa' },
+  { id: 'obs', name: 'Obs Cybersécurité', url: 'https://obs-cc.org/feed', icon: '👁️', country: 'intel.country.cm' },
 ]
 
 // ============================================
@@ -150,28 +170,23 @@ function formatDateFromRSS(dateStr: string): string {
 function getTimeAgo(dateStr: string): string {
   try {
     const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return 'Date inconnue'
+    if (isNaN(date.getTime())) return t('intel.unknownDate')
     const now = new Date()
     const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-    if (diff < 60) return 'À l\'instant'
-    if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`
-    if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`
-    if (diff < 604800) return `Il y a ${Math.floor(diff / 86400)}j`
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+    if (diff < 60) return t('common.justNow')
+    if (diff < 3600) return t('common.minutesAgo', { n: Math.floor(diff / 60) })
+    if (diff < 86400) return t('common.hoursAgo', { n: Math.floor(diff / 3600) })
+    if (diff < 604800) return t('common.daysAgo', { n: Math.floor(diff / 86400) })
+    return date.toLocaleDateString(intlLocale.value, { day: 'numeric', month: 'short', year: 'numeric' })
   } catch {
-    return 'Date inconnue'
+    return t('intel.unknownDate')
   }
 }
 
 function getSeverityBadge(severity: ThreatIntelItem['severity']): string {
-  const badges = {
-    critical: '🔴 Critique',
-    high: '🟠 Élevée',
-    medium: '🟡 Moyenne',
-    low: '🔵 Faible'
-  }
-  return badges[severity] || '⚪ Inconnue'
+  const icons = { critical: '🔴', high: '🟠', medium: '🟡', low: '🔵' }
+  return icons[severity] ? `${icons[severity]} ${t(`level.${severity}`)}` : `⚪ ${t('intel.unknown')}`
 }
 
 function getSeverityColor(severity: ThreatIntelItem['severity']): string {
@@ -233,8 +248,8 @@ async function fetchRealArticles(): Promise<ThreatIntelItem[]> {
               
               allArticles.push({
                 id: Date.now() + index + Math.random() * 1000,
-                title: cleanTitle || 'Sans titre',
-                summary: cleanDesc.slice(0, 300) || 'Lire l\'article complet...',
+                title: cleanTitle || t('intel.untitled'),
+                summary: cleanDesc.slice(0, 300) || t('intel.readFull'),
                 category: determineCategory(cleanTitle, cleanDesc),
                 severity: determineSeverity(cleanTitle, cleanDesc),
                 date: formatDateFromRSS(pubDate),
@@ -265,8 +280,8 @@ async function fetchRealArticles(): Promise<ThreatIntelItem[]> {
                 
                 allArticles.push({
                   id: Date.now() + index + Math.random() * 1000,
-                  title: cleanTitle || 'Sans titre',
-                  summary: cleanDesc.slice(0, 300) || 'Lire l\'article complet...',
+                  title: cleanTitle || t('intel.untitled'),
+                  summary: cleanDesc.slice(0, 300) || t('intel.readFull'),
                   category: determineCategory(cleanTitle, cleanDesc),
                   severity: determineSeverity(cleanTitle, cleanDesc),
                   date: formatDateFromRSS(pubDate),
@@ -315,16 +330,16 @@ function updateSourceStatus(sourceId: string, isOnline: boolean) {
 
 function generateMockArticles(): ThreatIntelItem[] {
   const mockData = [
-    { title: '🔴 Nouvelle campagne de phishing cible les utilisateurs de Mobile Money au Cameroun', source: 'cirt', category: 'Mobile Money', severity: 'critical' as const },
-    { title: 'Microsoft alerte sur une faille zero-day exploitée activement', source: 'thn', category: 'Vulnerability', severity: 'high' as const },
-    { title: 'Les cybercriminels utilisent l\'IA pour des attaques de phishing hyper-ciblées', source: 'bleeping', category: 'Phishing', severity: 'high' as const },
-    { title: 'Orange Money : alerte sur une nouvelle arnaque au SIM swapping', source: 'digital', category: 'Mobile Money', severity: 'critical' as const },
-    { title: 'CISA ajoute 5 nouvelles vulnérabilités à son catalogue des failles', source: 'cisa', category: 'Vulnerability', severity: 'medium' as const },
-    { title: 'Le Cameroun renforce sa cybersécurité avec un nouveau SOC', source: 'obs', category: 'Cyber Attack', severity: 'low' as const },
-    { title: 'INTERPOL lance une opération contre les botnets en Afrique', source: 'digital', category: 'Cyber Attack', severity: 'medium' as const },
-    { title: 'Google renforce la protection Gmail contre le phishing', source: 'thn', category: 'Phishing', severity: 'low' as const },
-    { title: 'Le Cameroun adopte une nouvelle loi sur la protection des données', source: 'cirt', category: 'Data Breach', severity: 'low' as const },
-    { title: 'Les ransomwares : les PME camerounaises particulièrement vulnérables', source: 'obs', category: 'Ransomware', severity: 'high' as const },
+    { title: 'intel.mock.1', source: 'cirt', category: 'Mobile Money', severity: 'critical' as const },
+    { title: 'intel.mock.2', source: 'thn', category: 'Vulnerability', severity: 'high' as const },
+    { title: 'intel.mock.3', source: 'bleeping', category: 'Phishing', severity: 'high' as const },
+    { title: 'intel.mock.4', source: 'digital', category: 'Mobile Money', severity: 'critical' as const },
+    { title: 'intel.mock.5', source: 'cisa', category: 'Vulnerability', severity: 'medium' as const },
+    { title: 'intel.mock.6', source: 'obs', category: 'Cyber Attack', severity: 'low' as const },
+    { title: 'intel.mock.7', source: 'digital', category: 'Cyber Attack', severity: 'medium' as const },
+    { title: 'intel.mock.8', source: 'thn', category: 'Phishing', severity: 'low' as const },
+    { title: 'intel.mock.9', source: 'cirt', category: 'Data Breach', severity: 'low' as const },
+    { title: 'intel.mock.10', source: 'obs', category: 'Ransomware', severity: 'high' as const },
   ]
 
   const sourceMap = Object.fromEntries(SOURCES.map(s => [s.id, s]))
@@ -332,14 +347,14 @@ function generateMockArticles(): ThreatIntelItem[] {
   return mockData.map((item, index) => ({
     id: Date.now() + index,
     title: item.title,
-    summary: 'Description détaillée de cette actualité cyber. Restez informé des dernières menaces.',
+    summary: 'intel.mockSummary',
     category: item.category,
     severity: item.severity,
     date: new Date(Date.now() - index * 3600000 * (Math.random() * 5 + 1)).toISOString(),
     source: item.source,
     url: '#',
     isReal: false,
-    sourceName: sourceMap[item.source]?.name || 'Inconnu',
+    sourceName: sourceMap[item.source]?.name || t('intel.unknown'),
     country: sourceMap[item.source]?.country || '🌍'
   }))
 }
@@ -362,13 +377,13 @@ async function refresh() {
       // Fallback to mock data
       items.value = generateMockArticles()
       lastUpdated.value = new Date().toISOString()
-      error.value = '⚠️ Sources indisponibles - Mode simulation'
+      error.value = 'intel.sourcesDown'
     }
   } catch (err) {
     console.error('❌ Erreur:', err)
     items.value = generateMockArticles()
     lastUpdated.value = new Date().toISOString()
-    error.value = '⚠️ Erreur de connexion - Mode simulation'
+    error.value = 'intel.connectionError'
   } finally {
     isLoading.value = false
   }
@@ -425,12 +440,12 @@ onUnmounted(() => {
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          Intelligence en direct
+          {{ t('intel.live') }}
         </div>
         
         <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 font-display">🧠 {{ t('landing.threatIntel.title') }}</h2>
         <p class="text-slate-500 mt-2 max-w-2xl mx-auto">
-          Alimentée par des flux RSS et des sources de cybersécurité internationales, classée par catégorie.
+          {{ t('intel.subtitle') }}
         </p>
         
         <!-- Controls -->
@@ -443,7 +458,7 @@ onUnmounted(() => {
             >
               <span v-if="isLoading" class="h-3.5 w-3.5 rounded-full border-2 border-white/60 border-t-white animate-spin"></span>
               <i v-else class="fas fa-sync-alt"></i>
-              {{ isLoading ? 'Actualisation…' : 'Actualiser' }}
+              {{ isLoading ? t('intel.refreshing') : t('common.refresh') }}
             </button>
             
             <button
@@ -452,19 +467,19 @@ onUnmounted(() => {
               :class="isAutoRefresh ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
             >
               <i :class="isAutoRefresh ? 'fas fa-pause' : 'fas fa-play'"></i>
-              {{ isAutoRefresh ? 'Auto' : 'Manuel' }}
+              {{ isAutoRefresh ? t('intel.auto') : t('intel.manual') }}
             </button>
           </div>
           
           <span v-if="lastUpdated && !isLoading" class="text-xs text-slate-400 flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 rounded-full" :class="onlineSources > 0 ? 'bg-emerald-500' : 'bg-yellow-500'"></span>
-            Mis à jour {{ new Date(lastUpdated).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) }}
+            {{ t('intel.updated', { time: new Date(lastUpdated).toLocaleTimeString(intlLocale, { hour: '2-digit', minute: '2-digit' }) }) }}
             <span class="text-slate-300">•</span>
-            {{ onlineSources }}/{{ totalSources }} sources en ligne
+            {{ t('intel.sourcesOnline', { online: onlineSources, total: totalSources }) }}
           </span>
           
           <p v-if="error" class="text-sm text-yellow-600 bg-yellow-50 px-4 py-2 rounded-lg border border-yellow-200">
-            {{ error }}
+            ⚠️ {{ tr(error) }}
           </p>
         </div>
       </div>
@@ -480,8 +495,8 @@ onUnmounted(() => {
       <!-- Articles Grid -->
       <div v-if="items.length === 0 && !isLoading" class="text-center py-12">
         <div class="text-4xl mb-4">📡</div>
-        <p class="text-slate-500">Aucun article disponible</p>
-        <p class="text-xs text-slate-400">Cliquez sur "Actualiser" pour charger les données</p>
+        <p class="text-slate-500">{{ t('intel.empty') }}</p>
+        <p class="text-xs text-slate-400">{{ t('intel.emptyHint') }}</p>
       </div>
 
       <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -494,8 +509,8 @@ onUnmounted(() => {
             <!-- Header: Source + Badge -->
             <div class="flex items-start justify-between mb-2">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-slate-600">{{ item.sourceName || 'Inconnu' }}</span>
-                <span class="text-xs text-slate-400">{{ item.country || '' }}</span>
+                <span class="text-sm font-medium text-slate-600">{{ item.sourceName || t('intel.unknown') }}</span>
+                <span class="text-xs text-slate-400">{{ item.country ? tr(item.country) : '' }}</span>
               </div>
               <span 
                 class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border"
@@ -508,24 +523,24 @@ onUnmounted(() => {
             <!-- Title -->
             <h4 class="text-sm font-semibold text-slate-800 mb-1.5 line-clamp-2 group-hover:text-blue-600 transition">
               <a :href="item.url" target="_blank" rel="noopener" class="hover:underline">
-                {{ item.title }}
+                {{ tr(item.title) }}
               </a>
             </h4>
 
             <!-- Summary -->
-            <p class="text-xs text-slate-500 leading-relaxed mb-3 line-clamp-3">{{ item.summary }}</p>
+            <p class="text-xs text-slate-500 leading-relaxed mb-3 line-clamp-3">{{ tr(item.summary) }}</p>
 
             <!-- Footer -->
             <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
               <span class="flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full" :class="item.isReal ? 'bg-emerald-500' : 'bg-yellow-500'"></span>
                 <span class="font-medium" :class="item.isReal ? 'text-emerald-600' : 'text-yellow-600'">
-                  {{ item.isReal ? 'Live' : 'Simulation' }}
+                  {{ item.isReal ? t('intel.liveBadge') : t('intel.simulation') }}
                 </span>
               </span>
               <span class="flex items-center gap-1">
                 <i class="fas fa-tag text-[10px] text-slate-300"></i>
-                {{ item.category }}
+                {{ categoryLabel(item.category) }}
               </span>
               <span>{{ getTimeAgo(item.date) }}</span>
             </div>
@@ -537,7 +552,7 @@ onUnmounted(() => {
                 {{ item.sourceName }}
               </span>
               <a :href="item.url" target="_blank" rel="noopener" class="text-[10px] text-blue-600 hover:underline font-medium">
-                Lire <i class="fas fa-arrow-right ml-1"></i>
+                {{ t('intel.read') }} <i class="fas fa-arrow-right ml-1"></i>
               </a>
             </div>
           </div>

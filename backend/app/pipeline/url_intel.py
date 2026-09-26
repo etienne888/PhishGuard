@@ -8,15 +8,16 @@ left as clearly marked extension points so the demo works without internet.
 import ipaddress
 from urllib.parse import urlparse
 
-from .sender import check_domain
+from .i18n import DEFAULT_LANG, tr
+from .sender import check_domain, registered_domain
 
 SUSPICIOUS_TLDS = {".tk", ".ga", ".ml", ".cf", ".gq", ".xyz", ".top", ".icu", ".buzz", ".click"}
 SHORTENERS = {"bit.ly", "tinyurl.com", "t.co", "goo.gl", "is.gd", "cutt.ly", "ow.ly", "rb.gy", "shorturl.at"}
 LURE_WORDS = ("login", "verify", "verif", "secure", "update", "account", "confirm", "reactiv", "bonus")
 
 
-def analyze_url(url: str, whitelist: dict) -> dict:
-    """Score one URL 0-100 and list the reasons, in French."""
+def analyze_url(url: str, whitelist: dict, lang: str = DEFAULT_LANG, blocklist: set | None = None) -> dict:
+    """Score one URL 0-100 and list the reasons in `lang`."""
     parsed = urlparse(url if "://" in url else f"http://{url}")
     host = (parsed.hostname or "").lower()
     score, reasons = 0, []
@@ -28,46 +29,51 @@ def analyze_url(url: str, whitelist: dict) -> dict:
                 "blocklisted": False}
     if status == "lookalike":
         score += 60
-        reasons.append(f"Domaine qui imite {domain_check['imitates']} ({domain_check['institution']})")
+        reasons.append(tr(lang, "url.lookalike", imitates=domain_check['imitates'], institution=domain_check['institution']))
     elif status == "brand_impersonation":
         score += 50
-        reasons.append(f"Le lien utilise le nom de {domain_check['institution']} sans être son site officiel")
+        reasons.append(tr(lang, "url.brand", institution=domain_check['institution']))
 
     is_ip = False
     try:
         ipaddress.ip_address(host)
         is_ip = True
         score += 35
-        reasons.append("Adresse IP utilisée à la place d'un nom de domaine")
+        reasons.append(tr(lang, "url.ip"))
     except ValueError:
         pass
 
     if any(host.endswith(tld) for tld in SUSPICIOUS_TLDS):
         score += 30
-        reasons.append(f"Extension de domaine très utilisée par les fraudeurs ({host.rsplit('.', 1)[-1]})")
+        reasons.append(tr(lang, "url.tld", tld=host.rsplit('.', 1)[-1]))
     if host in SHORTENERS:
         score += 25
-        reasons.append("Lien raccourci qui cache la vraie destination")
+        reasons.append(tr(lang, "url.shortener"))
     if "xn--" in host:
         score += 30
-        reasons.append("Domaine avec caractères déguisés (punycode)")
+        reasons.append(tr(lang, "url.punycode"))
     if not is_ip and host.count(".") >= 3:
         score += 10
-        reasons.append("Nombreux sous-domaines")
+        reasons.append(tr(lang, "url.subdomains"))
     if parsed.scheme == "http":
         score += 10
-        reasons.append("Connexion non sécurisée (http)")
+        reasons.append(tr(lang, "url.http"))
     if "@" in parsed.netloc:
         score += 25
-        reasons.append("Identifiants cachés dans l'adresse du lien")
+        reasons.append(tr(lang, "url.credentials"))
     if any(word in url.lower() for word in LURE_WORDS):
         score += 10
-        reasons.append("Mots d'hameçonnage dans le lien (login, verify, secure…)")
+        reasons.append(tr(lang, "url.lure"))
 
-    # EXTENSION POINTS (need network): follow redirects, OpenPhish/URLhaus
-    # blocklist lookup (set "blocklisted": True), WHOIS domain age.
+    # Known-bad domain (blocked by an analyst or an incident)
+    blocklisted = bool(blocklist) and (host in blocklist or registered_domain(host) in blocklist)
+    if blocklisted:
+        score = max(score, 95)
+        reasons.insert(0, tr(lang, "url.blocklisted"))
+
+    # EXTENSION POINTS (need network): follow redirects, WHOIS domain age.
     return {"url": url, "host": host, "score": min(100, score), "reasons": reasons,
-            "domain": domain_check, "blocklisted": False}
+            "domain": domain_check, "blocklisted": blocklisted}
 
 
 _xgb_model = None
@@ -96,8 +102,8 @@ def get_xgb_model():
     return _xgb_model or None
 
 
-def analyze_urls(urls: list[str], whitelist: dict) -> dict:
-    results = [analyze_url(u, whitelist) for u in urls]
+def analyze_urls(urls: list[str], whitelist: dict, lang: str = DEFAULT_LANG, blocklist: set | None = None) -> dict:
+    results = [analyze_url(u, whitelist, lang, blocklist) for u in urls]
     model = get_xgb_model() if xgb_enabled() else None
     if model is not None:
         for r in results:
@@ -109,7 +115,7 @@ def analyze_urls(urls: list[str], whitelist: dict) -> dict:
                 continue
             r['xgb'] = round(probability * 100, 1)
             if probability >= 0.5:
-                r['reasons'].append(f"Modèle XGB : lien malveillant à {probability * 100:.0f} %")
+                r['reasons'].append(tr(lang, "url.xgb", pct=f"{probability * 100:.0f}"))
             # Rules catch local brand tricks, XGB catches generic URL patterns: keep the stronger
             r['score'] = max(r['score'], round(probability * 100))
     worst = max((r["score"] for r in results), default=0)

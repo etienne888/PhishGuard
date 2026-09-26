@@ -2,7 +2,7 @@
     import { useI18n } from '@/i18n'
     const { t } = useI18n()
     const stats = [
-    { value: '1.02 Md', label: 'landing.hero.statLosses' },
+    { value: 'landing.hero.statLossesValue', label: 'landing.hero.statLosses' },
     { value: '471', label: 'landing.hero.statReports' },
     { value: '99%', label: 'landing.hero.statAccuracy' }
     ]
@@ -29,7 +29,7 @@
 
             <div class="mt-6 flex flex-wrap gap-6">
                 <div v-for="stat in stats" :key="stat.label">
-                <span class="text-2xl font-bold text-slate-800 font-display">{{ stat.value }}</span>
+                <span class="text-2xl font-bold text-slate-800 font-display">{{ stat.value.startsWith('landing.') ? t(stat.value) : stat.value }}</span>
                 <span class="text-sm text-slate-500 block">{{ t(stat.label) }}</span>
                 </div>
             </div>
@@ -62,8 +62,8 @@
 
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
                     <p class="text-sm text-slate-700 leading-relaxed">
-                    « Cher client MTN, votre compte Mobile Money a été
-                    <span class="text-red-500 font-medium">bloqué</span>. Cliquez ici pour le réactiver :
+                    « {{ t('landing.hero.sampleStart') }}
+                    <span class="text-red-500 font-medium">{{ t('landing.hero.sampleBlocked') }}</span>. {{ t('landing.hero.sampleClick') }}
                     <span class="text-red-500 underline">http://mtn-secure-cm.tk</span> »
                     </p>
                 </div>

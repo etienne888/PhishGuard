@@ -1,0 +1,7 @@
+Ok, great
+Now i just want us to upgrade the I want us to work on some upgrades
+
+1) Now fot the map, i want us to upgrade it's design and the IP funcitonalities. It is given a lon result page as far as addresses increases. I want an upgrade at the design and UI/UX side. Which joins the next modification.
+2) With mails i want us to be able to identify the sender's localisation, his ip address the most precise manner as possible with the analysed sent message.For example if a mail was sent from Yaonde to Maryland, we should know exact;ly from which place it was sent in YAOUNDE the quarter, the street ,the internet provider, the device. We can implement this extra using Google map.
+
+Both the user and admin should see this. At the user side, it's just to see the localisation and all at the admin side it's to see all the details of this happening

@@ -14,6 +14,28 @@ const router = createRouter({
       component: () => import('@/views/HomeView.vue')
     },
     {
+      // The checker on its own page; also the PWA share target and email result links
+      path: '/check',
+      name: 'check',
+      component: () => import('@/views/CheckView.vue')
+    },
+    {
+      path: '/learn',
+      name: 'learn',
+      component: () => import('@/views/LearnView.vue')
+    },
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('@/views/PrivacyView.vue')
+    },
+    {
+      path: '/dashboard/mailboxes',
+      name: 'mailboxes',
+      meta: { requiresAuth: true },
+      component: () => import('@/views/user/MailboxesView.vue')
+    },
+    {
       path: '/dashboard',
       name: 'dashboard',
       meta: { requiresAuth: true },
@@ -40,12 +62,13 @@ const router = createRouter({
         { path: 'reports', name: 'admin-reports', component: () => import('@/views/admin/ReviewQueue.vue') },
         { path: 'whitelist', name: 'admin-whitelist', component: () => import('@/views/admin/Whitelist.vue') },
         // meta.demo: screen still shows sample data (AdminLayout shows a banner)
-        { path: 'incidents', name: 'admin-incidents', meta: { demo: true }, component: () => import('@/views/admin/Incidents.vue') },
-        { path: 'threat-intel', name: 'admin-threat-intel', meta: { demo: true }, component: () => import('@/views/admin/ThreatIntelligence.vue') },
+        { path: 'incidents', name: 'admin-incidents', component: () => import('@/views/admin/Incidents.vue') },
+        { path: 'radar', name: 'admin-radar', component: () => import('@/views/admin/RadarView.vue') },
+        { path: 'threat-intel', name: 'admin-threat-intel', component: () => import('@/views/admin/ThreatIntelligence.vue') },
         { path: 'models', name: 'admin-models', meta: { demo: true }, component: () => import('@/views/admin/MLModelManagement.vue') },
         { path: 'integrations', name: 'admin-integrations', meta: { demo: true }, component: () => import('@/views/admin/Integrations.vue') },
-        { path: 'health', name: 'admin-health', meta: { demo: true }, component: () => import('@/views/admin/Health.vue') },
-        { path: 'audit', name: 'admin-audit', meta: { demo: true }, component: () => import('@/views/admin/AuditLog.vue') },
+        { path: 'health', name: 'admin-health', component: () => import('@/views/admin/Health.vue') },
+        { path: 'audit', name: 'admin-audit', component: () => import('@/views/admin/AuditLog.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/Settings.vue') }
       ]
     }

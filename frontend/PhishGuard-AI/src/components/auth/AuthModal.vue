@@ -3,7 +3,7 @@
     <Transition name="modal">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+        class="fixed inset-0 z-50 bg-slate-900/35 backdrop-blur-md flex items-center justify-center p-4"
         @click.self="closeModal"
       >
         <!-- Login Form -->
@@ -32,16 +32,16 @@
             <i class="fas fa-play"></i>
           </div>
           <h3 class="text-2xl font-bold text-slate-800 mt-4">
-            Démo bientôt disponible
+            {{ t('auth.demo.title') }}
           </h3>
           <p class="text-sm text-slate-500 mt-2">
-            Découvrez comment PhishGuard-AI détecte le phishing en temps réel.
+            {{ t('auth.demo.text') }}
           </p>
           <button
             class="mt-6 px-6 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-sm font-medium transition"
             @click="closeModal"
           >
-            Fermer
+            {{ t('common.close') }}
           </button>
         </div>
       </div>
@@ -54,6 +54,9 @@ import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import LoginForm from "./LoginForm.vue";
 import RegisterForm from "./RegisterForm.vue";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 const authStore = useAuthStore();
 

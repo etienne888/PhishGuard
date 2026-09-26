@@ -13,3 +13,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// Leaflet plugin without its own types (extends the global L; used in components/map/GeoMap.vue)
+declare module 'leaflet.heat'

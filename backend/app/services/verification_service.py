@@ -3,14 +3,20 @@ import secrets
 import os
 import smtplib
 from email.message import EmailMessage
+from email.utils import formataddr, formatdate, make_msgid, parseaddr
+from pathlib import Path
 from datetime import datetime, timedelta
 
 import bcrypt
+from flask import current_app
 
 from app import db
-from app.models import VerificationChallenge
+from app.models import User, VerificationChallenge
+from app.services.email_templates import LOGO_CID, verification_code_email
 
 logger = logging.getLogger(__name__)
+
+LOGO_PATH = Path(__file__).resolve().parent.parent / 'templates' / 'email' / 'logo-mark.png'
 
 
 class VerificationService:
@@ -53,16 +59,34 @@ class VerificationService:
         db.session.commit()
         return valid
 
+    def _build_code_email(self, email: str, code: str, sender: str) -> EmailMessage:
+        """Branded HTML code email with a plain-text part and the logo embedded inline."""
+        user = User.query.filter_by(email=email).first()
+        name = (user.full_name if user and user.full_name else email.split('@')[0]).strip()
+        subject, text, html = verification_code_email(name, code)
+
+        # Show a display name ("PhishGuard-AI <x@gmail.com>") unless SMTP_FROM already has one
+        display, address = parseaddr(sender)
+        message = EmailMessage()
+        message['Subject'] = subject
+        message['From'] = sender if display else formataddr(('PhishGuard-AI', address))
+        message['To'] = email
+        message['Date'] = formatdate(localtime=True)
+        message['Message-ID'] = make_msgid(domain=address.split('@')[-1] or None)
+        message.set_content(text)
+        message.add_alternative(html, subtype='html')
+        if LOGO_PATH.exists():
+            message.get_payload()[1].add_related(
+                LOGO_PATH.read_bytes(), 'image', 'png', cid=f'<{LOGO_CID}>', filename='logo.png',
+            )
+        return message
+
     def send_verification_email(self, email: str, code: str) -> bool:
         host = os.getenv('SMTP_HOST')
         sender = os.getenv('SMTP_FROM')
         if host and sender:
             try:
-                message = EmailMessage()
-                message['Subject'] = 'Votre code PhishGuard-AI'
-                message['From'] = sender
-                message['To'] = email
-                message.set_content(f'Votre code PhishGuard-AI est {code}. Il expire dans 5 minutes.')
+                message = self._build_code_email(email, code, sender)
                 with smtplib.SMTP(host, int(os.getenv('SMTP_PORT', '587')), timeout=10) as smtp:
                     if os.getenv('SMTP_USE_TLS', 'true').lower() == 'true':
                         smtp.starttls()
@@ -74,6 +98,10 @@ class VerificationService:
                 return True
             except Exception:
                 logger.exception('Verification code email delivery failed')
+                # Local development only: surface the code so sign-up isn't blocked by SMTP
+                if current_app.debug:
+                    logger.warning("SMTP failed - development code for %s: %s", email, code)
+                    return True
                 return False
         logger.info("Development email code for %s: %s", email, code)
         return True

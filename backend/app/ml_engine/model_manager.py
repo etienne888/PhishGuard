@@ -70,3 +70,32 @@ class NaiveBayesClassifier:
 
     def load(self, path):
         return joblib.load(path)
+
+def normalize_text(text: str) -> str:
+    """Lowercase and strip accents (é -> e) so French spelling variants share features.
+    Module-level so trained models (pickled) can always find it."""
+    import unicodedata
+    text = unicodedata.normalize('NFKD', (text or '').lower())
+    return ''.join(c for c in text if not unicodedata.combining(c))
+
+
+class SklearnTextModel:
+    """
+    Text classifier trained by train_ml.py: TF-IDF on words (1-2 grams) + characters
+    (3-5 grams, robust to spelling tricks like "0range" or "M0M0") -> logistic regression.
+    Same interface as NaiveBayesClassifier: predict_proba(text) -> probability of phishing.
+    `meta` holds the training date, dataset sizes and held-out metrics (shown to admins).
+    """
+
+    def __init__(self, pipeline, meta: dict):
+        self.pipeline = pipeline
+        self.meta = meta
+
+    def predict_proba(self, text):
+        return float(self.pipeline.predict_proba([text or ''])[0][1])
+
+    def save(self, path):
+        joblib.dump(self, path)
+
+    def load(self, path):
+        return joblib.load(path)

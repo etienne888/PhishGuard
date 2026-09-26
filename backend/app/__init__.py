@@ -53,10 +53,39 @@ def create_app():
         g.request_id = str(uuid4())
         g.request_started_at = perf_counter()
 
+    @app.before_request
+    def start_background_jobs():
+        # First request served: start mailbox sync, forwarded emails, correlation… (services/scheduler.py)
+        from app.services import scheduler
+        scheduler.start(app)
+
+    @app.before_request
+    def enforce_idle_timeout():
+        # Sign out sessions idle for longer than the platform policy (Settings › Sessions)
+        from datetime import datetime
+        from flask import session
+        from flask_login import current_user, logout_user
+        if not request.path.startswith('/api/') or not current_user.is_authenticated:
+            return None
+        from app.services import settings_service
+        now = datetime.utcnow().timestamp()
+        timeout = (settings_service.get('session_timeout_min') or 0) * 60
+        last_seen = session.get('last_seen')
+        if timeout and last_seen and now - last_seen > timeout:
+            logout_user()
+            session.clear()
+            return jsonify({'error': {'code': 'SESSION_EXPIRED', 'message': 'Session expired after inactivity.', 'detail': None}}), 401
+        session['last_seen'] = now
+        return None
+
     @app.after_request
     def add_request_metadata(response):
         duration_ms = round((perf_counter() - g.request_started_at) * 1000)
         response.headers['X-Request-ID'] = g.request_id
+        if request.path.startswith('/api/'):
+            from app.services.system_metrics import record_request
+            record_request(request.method, request.url_rule.rule if request.url_rule else request.path,
+                           response.status_code, duration_ms)
 
         if duration_ms > 500:
             app.logger.warning(
@@ -112,11 +141,27 @@ def create_app():
     from app.api.scan import scan_bp
     from app.api.user_profile import user_profile_bp
     from app.api.admin_ops import admin_ops_bp
+    from app.api.admin_security import admin_security_bp
+    from app.api.admin_soc import admin_soc_bp
+    from app.api.mailbox import mailbox_bp
+    from app.api.admin_geo import admin_geo_bp
+    from app.api.public import public_bp
     from app.models import User
 
     @login_manager.user_loader
     def load_user(user_id):
-        return db.session.get(User, int(user_id))
+        # Session ids look like "42:3" (user id : session version). A bumped
+        # version, a suspended account or one awaiting approval ends the session.
+        raw_id, _, version = str(user_id).partition(':')
+        try:
+            user = db.session.get(User, int(raw_id))
+        except (TypeError, ValueError):
+            return None
+        if user is None or (version and int(version) != (user.session_version or 1)):
+            return None
+        if user.status == 'suspended' or (user.approval_status or 'approved') != 'approved':
+            return None
+        return user
 
     @login_manager.unauthorized_handler
     def unauthorized():
@@ -141,5 +186,10 @@ def create_app():
     app.register_blueprint(scan_bp, url_prefix='/api/v2')
     app.register_blueprint(user_profile_bp, url_prefix='/api/user')
     app.register_blueprint(admin_ops_bp, url_prefix='/api/admin')
+    app.register_blueprint(admin_security_bp, url_prefix='/api/admin/security')
+    app.register_blueprint(admin_soc_bp, url_prefix='/api/admin')
+    app.register_blueprint(mailbox_bp, url_prefix='/api/mailbox')
+    app.register_blueprint(admin_geo_bp, url_prefix='/api/admin')
+    app.register_blueprint(public_bp, url_prefix='/api/public')
     
     return app

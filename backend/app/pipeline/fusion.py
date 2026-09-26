@@ -10,6 +10,8 @@ Unavailable signals (AI down, no URLs) have their weight redistributed
 proportionally. Override rules then enforce hard evidence both ways.
 """
 
+from .i18n import DEFAULT_LANG, tr
+
 BASE_WEIGHTS = {"ml": 0.30, "ai": 0.25, "url": 0.25, "rules": 0.20}
 
 
@@ -23,7 +25,7 @@ def verdict_for(score: float) -> str:
     return "Low"
 
 
-def fuse(signals: dict, facts: dict) -> dict:
+def fuse(signals: dict, facts: dict, lang: str = DEFAULT_LANG) -> dict:
     """
     signals: {"ml": float|None, "ai": float|None, "url": float|None, "rules": float|None}
     facts:   {"blocklisted", "brand_spoof", "sender_whitelisted", "auth_pass",
@@ -38,11 +40,11 @@ def fuse(signals: dict, facts: dict) -> dict:
     if facts.get("blocklisted") or facts.get("brand_spoof"):
         if score < 85:
             score = 85
-            overrides.append("Preuve forte (usurpation de marque ou lien sur liste noire) : score minimum 85")
+            overrides.append(tr(lang, "override.strong"))
     elif facts.get("sender_whitelisted") and facts.get("auth_pass") and facts.get("worst_url_score", 0) < 30:
         if score > 30:
             score = 30
-            overrides.append("Expéditeur officiel authentifié (SPF/DKIM/DMARC) sans lien suspect : score maximum 30")
+            overrides.append(tr(lang, "override.official"))
 
     score = round(max(0.0, min(100.0, score)), 2)
     return {

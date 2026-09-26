@@ -1,4 +1,5 @@
 import { useNotificationsStore } from '@/stores/notifications'
+import { apiLanguage, translate } from '@/i18n'
 
 const DEFAULT_TIMEOUT = 10_000
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
@@ -40,12 +41,35 @@ interface ApiErrorEnvelope {
 }
 
 function notifyError(error: ApiError, silent: boolean) {
-  if (!silent) {
+  // SUDO_REQUIRED opens the confirmation dialog instead of an error toast
+  if (!silent && !(error.code === 'SUDO_REQUIRED' && sudoPrompt)) {
     useNotificationsStore().push(error.message, 'error')
   }
 }
 
+/**
+ * Step-up authentication: sensitive admin endpoints answer SUDO_REQUIRED when the
+ * admin has not re-entered their password recently. The admin layout registers a
+ * prompt (SudoModal); the request is replayed once after a successful confirmation.
+ */
+type SudoPrompt = () => Promise<boolean>
+let sudoPrompt: SudoPrompt | null = null
+export function setSudoPrompt(prompt: SudoPrompt | null) {
+  sudoPrompt = prompt
+}
+
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  try {
+    return await rawFetch<T>(path, options)
+  } catch (error) {
+    if (error instanceof ApiError && error.code === 'SUDO_REQUIRED' && sudoPrompt) {
+      if (await sudoPrompt()) return rawFetch<T>(path, options)
+    }
+    throw error
+  }
+}
+
+async function rawFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { timeoutMs = DEFAULT_TIMEOUT, silent = false, ...init } = options
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeoutMs)
@@ -56,9 +80,10 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
       ...init,
       credentials: 'include',
       // FormData (file uploads) must let the browser set its own multipart boundary
+      // Accept-Language lets the backend answer in the interface language
       headers: init.body instanceof FormData
-        ? { ...(init.headers ?? {}) }
-        : { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+        ? { 'Accept-Language': apiLanguage.value, ...(init.headers ?? {}) }
+        : { 'Content-Type': 'application/json', 'Accept-Language': apiLanguage.value, ...(init.headers ?? {}) },
       signal: controller.signal,
     })
     const body = (await response.json().catch(() => ({}))) as ApiEnvelope<T> & ApiErrorEnvelope
@@ -78,8 +103,8 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   } catch (error) {
     if (error instanceof ApiError) throw error
     const apiError = error instanceof DOMException && error.name === 'AbortError'
-      ? new ApiError('TIMEOUT', 'Délai dépassé')
-      : new ApiError('NETWORK', 'Erreur réseau')
+      ? new ApiError('TIMEOUT', translate('errors.timeout'))
+      : new ApiError('NETWORK', translate('errors.network'))
     notifyError(apiError, silent)
     throw apiError
   } finally {

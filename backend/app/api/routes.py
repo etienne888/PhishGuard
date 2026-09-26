@@ -47,6 +47,9 @@ def health_check():
 
 @api_bp.route('/analyze', methods=['POST'])
 def analyze_message():
+    # Legacy endpoint: results are for signed-in users only (visitors use /v2/scan + claim)
+    if not current_user.is_authenticated:
+        return jsonify({'error': {'code': 'AUTH_REQUIRED', 'message': 'Authentication required.'}}), 401
     try:
         data = request.get_json()
         text = data.get('text', '')

@@ -130,7 +130,7 @@ const socialLinks = [
                 class="text-sm text-slate-400 hover:text-white transition hover:translate-x-1 inline-flex items-center gap-1.5"
               >
                 <i class="fas fa-external-link-alt text-[8px] text-slate-600"></i>
-                {{ 'key' in link ? t(link.key as string) : link.label }}
+                {{ 'key' in link && link.key ? t(link.key) : link.label }}
               </a>
             </li>
           </ul>
@@ -160,7 +160,7 @@ const socialLinks = [
       <!-- Bottom Bar -->
       <div class="mt-8 pt-6 border-t border-slate-800/50 flex flex-col sm:flex-row justify-between items-center gap-3">
         <div class="flex items-center gap-4 text-xs text-slate-500">
-          <span>© {{ year }} PhishGuard-AI · Cameroun</span>
+          <span>© {{ year }} PhishGuard-AI · {{ t('footer.country') }}</span>
           <span class="hidden sm:inline">|</span>
           <span class="flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>

@@ -4,7 +4,7 @@
 
     defineProps<{ category: ThreatCategory }>()
     defineEmits<{ close: [] }>()
-    const { t } = useI18n()
+    const { t, tOr } = useI18n()
     </script>
 
     <template>
@@ -15,8 +15,8 @@
             <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full mb-2 bg-blue-50 text-blue-700">
                 {{ t('landing.categories.threat') }}{{ category.priority }}
             </span>
-            <h3 class="text-2xl font-bold text-slate-800 font-display">{{ category.name }}</h3>
-            <p class="text-slate-600 mt-2 max-w-2xl">{{ category.description }}</p>
+            <h3 class="text-2xl font-bold text-slate-800 font-display">{{ tOr(`category.${category.id}.name`, category.name) }}</h3>
+            <p class="text-slate-600 mt-2 max-w-2xl">{{ tOr(`category.${category.id}.description`, category.description) }}</p>
             </div>
             <button class="text-slate-400 hover:text-slate-600 transition shrink-0" :aria-label="t('landing.categories.close')" @click="$emit('close')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -27,15 +27,15 @@
         <div class="grid sm:grid-cols-2 gap-4 mt-6">
             <div class="bg-slate-50 rounded-xl p-4">
             <span class="text-xs font-semibold text-slate-400">{{ t('landing.categories.mechanism') }}</span>
-            <p class="text-sm text-slate-700 mt-1">{{ category.mechanism }}</p>
+            <p class="text-sm text-slate-700 mt-1">{{ tOr(`category.${category.id}.mechanism`, category.mechanism) }}</p>
             </div>
             <div class="bg-slate-50 rounded-xl p-4">
             <span class="text-xs font-semibold text-slate-400">{{ t('landing.categories.warningSigns') }}</span>
-            <p class="text-sm text-slate-700 mt-1">{{ category.warningSigns }}</p>
+            <p class="text-sm text-slate-700 mt-1">{{ tOr(`category.${category.id}.warningSigns`, category.warningSigns) }}</p>
             </div>
             <div class="bg-slate-50 rounded-xl p-4 sm:col-span-2">
             <span class="text-xs font-semibold text-slate-400">{{ t('landing.categories.action') }}</span>
-            <p class="text-sm text-slate-700 mt-1">{{ category.recommendedAction }}</p>
+            <p class="text-sm text-slate-700 mt-1">{{ tOr(`category.${category.id}.action`, category.recommendedAction) }}</p>
             </div>
         </div>
         </div>

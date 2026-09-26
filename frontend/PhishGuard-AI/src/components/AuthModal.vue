@@ -44,6 +44,8 @@
         email: form.email,
         password: form.password,
         confirmPassword: form.confirmPassword,
+        full_name: form.email.split('@')[0] ?? '',
+        acceptTerms: true,
     });
     }
 

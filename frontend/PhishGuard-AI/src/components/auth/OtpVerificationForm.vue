@@ -2,38 +2,37 @@
   <div class="space-y-4">
     <div class="text-center">
       <div
-        class="w-16 h-16 mx-auto rounded-full bg-blue-50 flex items-center justify-center text-2xl text-blue-600"
+        class="w-14 h-14 mx-auto rounded-full bg-blue-50 ring-8 ring-blue-50/50 flex items-center justify-center text-2xl text-blue-600"
       >
-        <i class="fas fa-mobile-screen-button"></i>
+        <i :class="method === 'phone' ? 'fas fa-mobile-screen-button' : 'fas fa-envelope-open-text'"></i>
       </div>
       <h4 class="text-lg font-bold text-slate-800 mt-3">
-        Vérification par {{ method === "phone" ? "SMS" : "Email" }}
+        {{ t(method === 'phone' ? 'auth.otp.titleSms' : 'auth.otp.titleEmail') }}
       </h4>
       <p class="text-sm text-slate-500">
-        Un code a été envoyé à votre
-        {{ method === "phone" ? "téléphone" : "email" }}
+        {{ t(method === 'phone' ? 'auth.otp.sentPhone' : 'auth.otp.sentEmail') }}
       </p>
     </div>
 
     <div v-if="!identifier" class="space-y-2">
       <label class="text-xs font-medium text-slate-600 block">{{
-        method === "phone" ? "Numéro de téléphone" : "Email"
+        method === "phone" ? t('auth.otp.phoneNumber') : t('auth.email')
       }}</label>
       <input
         v-model="destination"
         :type="method === 'phone' ? 'tel' : 'email'"
         :placeholder="
-          method === 'phone' ? '+237 6XX XXX XXX' : 'vous@exemple.com'
+          method === 'phone' ? '+237 6XX XXX XXX' : t('auth.emailPlaceholder')
         "
-        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+        class="auth-input"
       />
       <button
         type="button"
-        class="w-full py-2.5 rounded-lg border border-blue-200 text-blue-600 text-sm font-semibold disabled:opacity-50"
+        class="w-full py-2.5 rounded-full bg-blue-50 text-blue-600 text-sm font-semibold hover:bg-blue-100 transition disabled:opacity-50"
         :disabled="isSubmitting || !destination"
         @click="sendCode"
       >
-        Envoyer le code
+        {{ t('auth.verify.send') }}
       </button>
     </div>
 
@@ -42,7 +41,7 @@
         <label
           class="text-xs font-medium text-slate-600 block mb-2 text-center"
         >
-          Code de vérification <span class="text-red-500">*</span>
+          {{ t('auth.verify.code') }} <span class="text-red-500">*</span>
         </label>
         <div class="flex justify-center gap-2">
           <input
@@ -52,17 +51,17 @@
             v-model="digits[i - 1]"
             type="text"
             maxlength="1"
-            class="w-11 h-14 text-center text-xl font-bold border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition"
+            class="w-11 h-13 text-center text-xl font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-300 outline-none transition"
             @input="onInput(i - 1, $event)"
             @keydown="onKeydown(i - 1, $event)"
             @paste="onPaste"
           />
         </div>
-        <p v-if="error" class="text-xs text-red-500 mt-2 text-center">
+        <p v-if="error" class="text-xs text-rose-500 mt-2 text-center">
           {{ error }}
         </p>
         <p class="text-xs text-slate-400 mt-2 text-center">
-          Le code expire dans
+          {{ t('auth.otp.expiresIn') }}
           <span class="font-medium text-slate-600">{{ timer }}</span
           >s
         </p>
@@ -71,10 +70,10 @@
       <button
         type="submit"
         :disabled="isSubmitting || !isComplete"
-        class="w-full py-3 mt-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition disabled:opacity-60"
+        class="auth-btn mt-5"
       >
         <i v-if="isSubmitting" class="fas fa-spinner fa-spin mr-2"></i>
-        {{ isSubmitting ? "Vérification..." : "Vérifier" }}
+        {{ isSubmitting ? t('auth.otp.verifying') : t('auth.otp.verify') }}
       </button>
     </form>
 
@@ -83,22 +82,26 @@
         @click="$emit('back')"
         class="text-sm text-slate-500 hover:text-slate-700 transition"
       >
-        <i class="fas fa-arrow-left mr-1"></i> Retour
+        <i class="fas fa-arrow-left mr-1"></i> {{ t('common.back') }}
       </button>
       <button
         @click="resendCode"
         :disabled="timer > 0"
         class="text-sm text-blue-600 hover:underline transition disabled:opacity-50"
       >
-        Renvoyer le code
+        {{ t('auth.otp.resend') }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import "./auth.css";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { api } from "@/services/api";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   method: "phone" | "email";
@@ -149,7 +152,7 @@ function onPaste(event: ClipboardEvent) {
 async function verifyCode() {
   const code = digits.value.join("");
   if (code.length < 6) {
-    error.value = "Code invalide (6 chiffres requis).";
+    error.value = t('auth.otp.invalidFormat');
     return;
   }
 
@@ -169,7 +172,7 @@ async function verifyCode() {
     });
     emit("verified", data.user);
   } catch (err) {
-    error.value = "Erreur de vérification";
+    error.value = t('auth.otp.verifyFailed');
   } finally {
     isSubmitting.value = false;
   }
@@ -191,7 +194,7 @@ async function sendCode() {
     codeSent.value = true;
     startTimer();
   } catch {
-    error.value = "Impossible d'envoyer le code.";
+    error.value = t('auth.otp.sendFailed');
   } finally {
     isSubmitting.value = false;
   }
@@ -231,3 +234,4 @@ onUnmounted(() => {
   if (interval) clearInterval(interval);
 });
 </script>
+

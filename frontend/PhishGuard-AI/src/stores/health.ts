@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { healthService, type HealthStatus } from '@/services/health.service'
+import { translate } from '@/i18n'
 
 const CACHE_DURATION_MS = 30_000
 
@@ -26,7 +27,7 @@ export const useHealthStore = defineStore('health', () => {
       status.value = await healthService.getStatus()
       lastFetched.value = Date.now()
     } catch (caught) {
-      error.value = caught instanceof Error ? caught.message : 'État du système indisponible.'
+      error.value = caught instanceof Error ? caught.message : translate('errors.healthUnavailable')
     } finally {
       isLoading.value = false
     }

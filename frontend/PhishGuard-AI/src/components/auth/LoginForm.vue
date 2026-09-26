@@ -1,47 +1,29 @@
 <template>
   <div
-    class="bg-white rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden p-6 sm:p-8"
+    class="auth-card bg-white rounded-3xl max-w-md w-full relative overflow-hidden px-6 py-7 sm:px-9 sm:py-8"
   >
+    <!-- Close -->
+    <button
+      class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center"
+      :aria-label="t('auth.close')"
+      @click="$emit('close')"
+    >
+      <i class="fas fa-xmark"></i>
+    </button>
+
     <!-- Header -->
-    <div class="flex justify-between items-start mb-6">
-      <div>
-        <div class="flex items-center gap-3 mb-1">
-          <div
-            class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25"
-          >
-            <i class="fas fa-shield-halved text-white text-sm"></i>
-          </div>
-          <span class="text-xl font-extrabold tracking-tight text-slate-800">
-            Phish<span class="text-blue-600">Guard</span
-            ><span class="text-cyan-500">-AI</span>
-          </span>
-        </div>
-        <h3 class="text-2xl font-bold text-slate-800 font-display">
-          {{ t('auth.login.title') }}
-        </h3>
-        <p class="text-sm text-slate-500">
-          {{ t('auth.login.subtitle') }}
-        </p>
-      </div>
-      <button
-        class="text-slate-400 hover:text-slate-600 transition p-1 rounded-lg hover:bg-slate-100"
-        :aria-label="t('auth.close')"
-        @click="$emit('close')"
-      >
-        <i class="fas fa-xmark text-xl"></i>
-      </button>
-    </div>
+    <AuthHeader :title="t('auth.login.title')" :subtitle="t('auth.login.subtitle')" />
 
     <!-- Tabs -->
-    <div class="flex gap-1 bg-slate-100 rounded-xl p-1 mb-6">
+    <div class="flex gap-1 bg-slate-100/70 rounded-full p-1 mb-6">
       <button
         v-for="tab in tabs"
         :key="tab.id"
         @click="activeTab = tab.id"
-        class="flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200"
+        class="flex-1 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200"
         :class="
           activeTab === tab.id
-            ? 'bg-white shadow-sm text-slate-800'
+            ? 'bg-white shadow-sm text-blue-600'
             : 'text-slate-500 hover:text-slate-700'
         "
       >
@@ -54,20 +36,18 @@
     <!-- TAB 1: EMAIL & PASSWORD                                       -->
     <!-- ============================================================ -->
     <div v-if="activeTab === 'email'" class="space-y-4">
-      <form @submit.prevent="handleEmailLogin">
+      <form class="space-y-4" @submit.prevent="handleEmailLogin">
         <div>
-          <label class="text-xs font-medium text-slate-600 block mb-1">
+          <label class="text-xs font-medium text-slate-500 block mb-1.5 ml-1">
             {{ t('auth.email') }} <span class="text-red-500">*</span>
           </label>
           <input
             v-model="emailForm.email"
             type="email"
             :placeholder="t('auth.emailPlaceholder')"
-            class="w-full px-3 py-2.5 border rounded-lg text-sm transition"
+            class="auth-input"
             :class="
-              emailErrors.email
-                ? 'border-red-400 focus:ring-red-500/30'
-                : 'border-slate-200 focus:ring-blue-500/30 focus:border-blue-500'
+              emailErrors.email ? 'auth-input--error' : ''
             "
             @blur="validateEmailField('email')"
             required
@@ -82,8 +62,8 @@
         </div>
 
         <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="text-xs font-medium text-slate-600 block">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-medium text-slate-500 block ml-1">
               {{ t('auth.password') }} <span class="text-red-500">*</span>
             </label>
             <button
@@ -98,11 +78,9 @@
               v-model="emailForm.password"
               :type="showPassword ? 'text' : 'password'"
               :placeholder="t('auth.passwordPlaceholder')"
-              class="w-full px-3 py-2.5 border rounded-lg text-sm transition pr-10"
+              class="auth-input pr-11"
               :class="
-                emailErrors.password
-                  ? 'border-red-400 focus:ring-red-500/30'
-                  : 'border-slate-200 focus:ring-blue-500/30 focus:border-blue-500'
+                emailErrors.password ? 'auth-input--error' : ''
               "
               @blur="validateEmailField('password')"
               required
@@ -132,7 +110,7 @@
 
         <p
           v-if="authError"
-          class="text-sm text-red-500 bg-red-50 p-2 rounded-lg border border-red-200 flex items-center gap-2"
+          class="text-sm text-rose-600 bg-rose-50 px-3 py-2.5 rounded-xl flex items-center gap-2"
         >
           <i class="fas fa-triangle-exclamation"></i>
           {{ authError }}
@@ -141,7 +119,7 @@
         <button
           type="submit"
           :disabled="isSubmitting"
-          class="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition disabled:opacity-60 flex items-center justify-center gap-2"
+          class="auth-btn"
         >
           <i v-if="isSubmitting" class="fas fa-spinner fa-spin"></i>
           {{ isSubmitting ? t('auth.login.submitting') : t('auth.login.submit') }}
@@ -149,9 +127,9 @@
       </form>
 
       <div class="relative flex items-center py-2">
-        <div class="flex-1 border-t border-slate-200"></div>
-        <span class="px-4 text-xs text-slate-400 font-medium">OU</span>
-        <div class="flex-1 border-t border-slate-200"></div>
+        <div class="flex-1 border-t border-slate-100"></div>
+        <span class="px-4 text-[11px] tracking-widest text-slate-400">{{ t('common.or') }}</span>
+        <div class="flex-1 border-t border-slate-100"></div>
       </div>
 
       <!-- Social Login Buttons -->
@@ -159,21 +137,21 @@
 
       <div
         v-if="authStore.mfaRequired"
-        class="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4"
+        class="mt-4 rounded-2xl bg-blue-50/70 p-4"
       >
         <label class="text-xs font-medium text-slate-700 block mb-2"
-          >Code de votre application d'authentification</label
+          >{{ t('auth.login.mfaLabel') }}</label
         >
         <input
           v-model="mfaCode"
           inputmode="numeric"
           maxlength="6"
-          class="w-full px-3 py-2.5 border border-blue-200 rounded-lg text-sm"
+          class="auth-input bg-white text-center tracking-[0.4em]"
           placeholder="123456"
         />
         <button
           type="button"
-          class="w-full mt-3 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"
+          class="auth-btn mt-3"
           :disabled="isSubmitting || mfaCode.length !== 6"
           @click="verifyMfa"
         >
@@ -204,9 +182,9 @@
     </div>
 
     <!-- Footer -->
-    <div class="mt-6 pt-4 border-t border-slate-200">
+    <div class="mt-6 pt-5 border-t border-slate-100">
       <p class="text-center text-sm text-slate-500">
-        Pas encore de compte ?
+        {{ t('auth.login.noAccount') }}
         <button
           @click="$emit('switch-to-register')"
           class="text-blue-600 font-medium hover:underline"
@@ -219,13 +197,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import "./auth.css";
+import { ref, reactive, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { isValidEmail } from "@/utils";
 import GoogleLoginButton from "./GoogleLoginButton.vue";
 import OtpVerificationForm from "./OtpVerificationForm.vue";
 import EmailCodeForm from "./EmailCodeForm.vue";
+import AuthHeader from "./AuthHeader.vue";
 import { useI18n } from '@/i18n';
 import type { AuthUser } from '@/types';
 
@@ -236,11 +216,11 @@ const router = useRouter();
 const { t } = useI18n();
 
 // Tabs
-const tabs = [
-  { id: "email", label: "Email", icon: "fas fa-envelope" },
-  { id: "phone", label: "Téléphone", icon: "fas fa-phone" },
-  { id: "emailCode", label: "Code Email", icon: "fas fa-key" },
-];
+const tabs = computed(() => [
+  { id: "email", label: t('auth.email'), icon: "fas fa-envelope" },
+  { id: "phone", label: t('auth.phone'), icon: "fas fa-phone" },
+  { id: "emailCode", label: t('auth.login.emailCodeTab'), icon: "fas fa-key" },
+]);
 const activeTab = ref("email");
 
 // Email form
@@ -270,11 +250,11 @@ function validateEmailField(field: keyof typeof emailErrors) {
   if (field === "email") {
     emailErrors.email = isValidEmail(emailForm.email)
       ? ""
-      : "Adresse email invalide.";
+      : t('auth.errors.invalidEmail');
   }
   if (field === "password") {
     emailErrors.password =
-      emailForm.password.length >= 8 ? "" : "Minimum 8 caractères.";
+      emailForm.password.length >= 8 ? "" : t('auth.errors.passwordMin', { n: 8 });
   }
 }
 
@@ -294,7 +274,7 @@ async function handleEmailLogin() {
       await redirectAfterLogin(authStore.user);
     }
   } catch (err: any) {
-    authError.value = err.message || "Erreur de connexion";
+    authError.value = err.message || t('auth.errors.loginFailed');
   } finally {
     isSubmitting.value = false;
   }
@@ -331,3 +311,4 @@ function handleEmailCodeVerified(user: AuthUser) {
   void redirectAfterLogin(user);
 }
 </script>
+

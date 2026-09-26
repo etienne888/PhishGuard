@@ -35,8 +35,9 @@ export const authService = {
     await api.post('/auth/mfa/enable', { code })
   },
 
-  async disableMfa(): Promise<void> {
-    await api.post('/auth/mfa/disable')
+  /** Removing the second factor requires a current authenticator code. */
+  async disableMfa(code: string): Promise<void> {
+    await api.post('/auth/mfa/disable', { code })
   },
 
   async register(payload: RegisterPayload): Promise<RegisterResponse> {

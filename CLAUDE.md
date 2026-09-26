@@ -74,6 +74,32 @@ Both trained models are optional at load time (missing files are caught and logg
 
 Indicator strings surfaced to the UI are French-language phishing cues (urgency, credential requests, mobile-money context) — see `_get_indicators`.
 
+### SOC platform (admin security operations)
+
+Database: `database/scripts/08_soc_platform.sql` (run as `postgres`, the table owner). Backend services in `app/services/`, each with one job:
+
+- `client_info.py` — real client IP (trusts `X-Forwarded-For` only from a local proxy), device label, IP geolocation (ip-api.com: country, ISP, `proxy`/`hosting` flags).
+- `audit_service.record()` — every login, security change and admin action goes to `security_events`; login history and the audit log are views of that table. Never raises.
+- `registration_risk.py` — sign-up risk score (disposable email, IP reuse, VPN/datacentre, honeypot field, fill time…) + approval decision from `registration_mode`.
+- `triage_service.py` — engine suggestion + confidence for review-queue items; `triage_mode` manual/assisted/auto, `triage_threshold` (default 80). Auto decisions use `review_source='auto'` and are excluded from the retraining export.
+- `indicators.py` → `correlation_service.py` — IOC extraction and incident correlation (N dangerous messages sharing a domain/brand in a window → incident with a JSON timeline); `blocked_domains` feeds the pipeline (`url_intel` forces blocklisted links to 85+).
+- `system_metrics.py` (request ring buffer filled in `after_request`, psutil, DB stats), `domain_health.py` (allowlist DNS/TLS checks), `threat_feed.py` (OpenPhish, cached in `instance/`).
+
+Security model: session ids are `"<user id>:<session_version>"` (`User.get_id`, `load_user` in `app/__init__.py`) — bumping `session_version` signs a user out everywhere; `load_user` also refuses suspended or unapproved accounts. Sensitive admin endpoints use `@sudo_required` (`app/api/security.py`): the frontend's `apiFetch` catches `SUDO_REQUIRED`, shows `SudoModal` and replays the request. Idle sessions expire after `session_timeout_min`.
+
+APIs: `admin_security.py` (`/api/admin/security/*`: posture, sudo, sessions, events/audit), `admin_soc.py` (`/api/admin`: system, incidents, intel, blocklist), `admin.py` (users + approval workflow), `admin_ops.py` (review queue + triage, allowlist + health). Frontend: `services/soc.service.ts`, shared admin UI kit in `components/admin/ui/` (PageHeader, Panel, StatTile, Pill, Sparkline, RingGauge).
+
+### Mailbox scanner and user experience
+
+Database: `database/scripts/09_user_experience.sql`. Services in `app/services/`:
+
+- `scan_service.py` — one place to store a pipeline result (web, mailbox, forward, share) and run SOC automation. **Visitors**: `/api/v2/scan` analyses but returns only `{gated, claim_token}`; the result is revealed by `POST /api/v2/scan/claim` after sign-in (token hash stored, single use, 24 h). Never return verdicts to anonymous callers (legacy `/api/analyze` requires login too).
+- `mailbox_service.py` — Gmail / Outlook OAuth (read-only by default), token refresh, sync by received-date cursor, dedupe on `(mailbox_id, external_id)`; safe emails keep only their subject. Tokens encrypted with `crypto_box.py` (Fernet if `cryptography` is installed, else an HMAC-SHA256 stdlib construction).
+- `inbound_service.py` — "forward to PhishGuard" inbox polled over IMAP; members get the verdict by email, unknown senders a claim link.
+- `scheduler.py` — daemon thread started on the first request: mailbox sync, forwarded emails, correlation, OpenPhish, allowlist health; status shown on the admin System page.
+
+APIs: `api/mailbox.py` (`/api/mailbox`), `api/public.py` (`/api/public/alerts`, anonymised incidents), plus `/api/user/summary`, `/quiz/answer`, `/onboarded`, `DELETE /api/user/analyses[/<id>]`. Frontend: `components/check/*` (composer with OCR via lazy `tesseract.js`, live steps, gate, result card with highlights/what-to-do/read-aloud/feedback), views `/check` (also the PWA share target), `/learn`, `/privacy`, `/dashboard/mailboxes`; PWA files in `public/` (`manifest.webmanifest`, `sw.js`, never caches `/api`). Icons: `components/ui/AppIcon.vue` + `icons.ts`. Strings: `i18n/locales/{fr,en}/ux.ts`.
+
 ### Frontend structure
 
 - `src/services/*.service.ts` wrap `apiFetch` (from `src/services/http.ts`) per API domain (auth, admin, analysis, threat intel, user dashboard, mobile money). Prefer adding a method to the relevant service over calling `apiFetch` directly from components.

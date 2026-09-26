@@ -1,0 +1,806 @@
+{
+  "generated_at": "2026-09-26T09:57:34.826758+00:00",
+  "test_messages": 501,
+  "skipped_too_short": 3,
+  "latency_ms": {
+    "offline_p50": 10,
+    "offline_p95": 12,
+    "with_ai_p50": 7237
+  },
+  "definitions": {
+    "flagged": "score > 40 (suspicious or phishing: the user is warned)",
+    "phishing": "score > 60 (High or Critical)"
+  },
+  "results": {
+    "ml_only": {
+      "synthetic": {
+        "flagged": {
+          "n": 178,
+          "precision": 0.7742,
+          "recall": 1.0,
+          "f1": 0.8727,
+          "false_positive_rate": 0.3415,
+          "accuracy": 0.8427,
+          "confusion": {
+            "tp": 96,
+            "fp": 28,
+            "tn": 54,
+            "fn": 0
+          }
+        },
+        "phishing": {
+          "n": 178,
+          "precision": 0.757,
+          "recall": 0.8438,
+          "f1": 0.798,
+          "false_positive_rate": 0.3171,
+          "accuracy": 0.7697,
+          "confusion": {
+            "tp": 81,
+            "fp": 26,
+            "tn": 56,
+            "fn": 15
+          }
+        }
+      },
+      "all_local": {
+        "flagged": {
+          "n": 204,
+          "precision": 0.7842,
+          "recall": 0.9909,
+          "f1": 0.8755,
+          "false_positive_rate": 0.3191,
+          "accuracy": 0.848,
+          "confusion": {
+            "tp": 109,
+            "fp": 30,
+            "tn": 64,
+            "fn": 1
+          }
+        },
+        "phishing": {
+          "n": 204,
+          "precision": 0.7672,
+          "recall": 0.8091,
+          "f1": 0.7876,
+          "false_positive_rate": 0.2872,
+          "accuracy": 0.7647,
+          "confusion": {
+            "tp": 89,
+            "fp": 27,
+            "tn": 67,
+            "fn": 21
+          }
+        }
+      },
+      "all": {
+        "flagged": {
+          "n": 501,
+          "precision": 0.8256,
+          "recall": 0.993,
+          "f1": 0.9016,
+          "false_positive_rate": 0.0838,
+          "accuracy": 0.9381,
+          "confusion": {
+            "tp": 142,
+            "fp": 30,
+            "tn": 328,
+            "fn": 1
+          }
+        },
+        "phishing": {
+          "n": 501,
+          "precision": 0.8176,
+          "recall": 0.8462,
+          "f1": 0.8316,
+          "false_positive_rate": 0.0754,
+          "accuracy": 0.9022,
+          "confusion": {
+            "tp": 121,
+            "fp": 27,
+            "tn": 331,
+            "fn": 22
+          }
+        }
+      },
+      "challenge": {
+        "flagged": {
+          "n": 24,
+          "precision": 0.8462,
+          "recall": 0.9167,
+          "f1": 0.88,
+          "false_positive_rate": 0.1667,
+          "accuracy": 0.875,
+          "confusion": {
+            "tp": 11,
+            "fp": 2,
+            "tn": 10,
+            "fn": 1
+          }
+        },
+        "phishing": {
+          "n": 24,
+          "precision": 0.875,
+          "recall": 0.5833,
+          "f1": 0.7,
+          "false_positive_rate": 0.0833,
+          "accuracy": 0.75,
+          "confusion": {
+            "tp": 7,
+            "fp": 1,
+            "tn": 11,
+            "fn": 5
+          }
+        }
+      },
+      "admin": {
+        "flagged": {
+          "n": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": null,
+          "accuracy": 1.0,
+          "confusion": {
+            "tp": 2,
+            "fp": 0,
+            "tn": 0,
+            "fn": 0
+          }
+        },
+        "phishing": {
+          "n": 2,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6667,
+          "false_positive_rate": null,
+          "accuracy": 0.5,
+          "confusion": {
+            "tp": 1,
+            "fp": 0,
+            "tn": 0,
+            "fn": 1
+          }
+        }
+      },
+      "uci_sms": {
+        "flagged": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 1.0,
+          "confusion": {
+            "tp": 33,
+            "fp": 0,
+            "tn": 264,
+            "fn": 0
+          }
+        },
+        "phishing": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 0.9697,
+          "f1": 0.9846,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.9966,
+          "confusion": {
+            "tp": 32,
+            "fp": 0,
+            "tn": 264,
+            "fn": 1
+          }
+        }
+      },
+      "uci": {
+        "flagged": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 1.0,
+          "confusion": {
+            "tp": 33,
+            "fp": 0,
+            "tn": 264,
+            "fn": 0
+          }
+        },
+        "phishing": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 0.9697,
+          "f1": 0.9846,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.9966,
+          "confusion": {
+            "tp": 32,
+            "fp": 0,
+            "tn": 264,
+            "fn": 1
+          }
+        }
+      }
+    },
+    "rules_only": {
+      "synthetic": {
+        "flagged": {
+          "n": 178,
+          "precision": 1.0,
+          "recall": 0.0625,
+          "f1": 0.1176,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.4944,
+          "confusion": {
+            "tp": 6,
+            "fp": 0,
+            "tn": 82,
+            "fn": 90
+          }
+        },
+        "phishing": {
+          "n": 178,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.4607,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 82,
+            "fn": 96
+          }
+        }
+      },
+      "all_local": {
+        "flagged": {
+          "n": 204,
+          "precision": 1.0,
+          "recall": 0.0636,
+          "f1": 0.1197,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.4951,
+          "confusion": {
+            "tp": 7,
+            "fp": 0,
+            "tn": 94,
+            "fn": 103
+          }
+        },
+        "phishing": {
+          "n": 204,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.4608,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 94,
+            "fn": 110
+          }
+        }
+      },
+      "all": {
+        "flagged": {
+          "n": 501,
+          "precision": 1.0,
+          "recall": 0.0559,
+          "f1": 0.106,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.7305,
+          "confusion": {
+            "tp": 8,
+            "fp": 0,
+            "tn": 358,
+            "fn": 135
+          }
+        },
+        "phishing": {
+          "n": 501,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.7146,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 358,
+            "fn": 143
+          }
+        }
+      },
+      "challenge": {
+        "flagged": {
+          "n": 24,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.5,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 12,
+            "fn": 12
+          }
+        },
+        "phishing": {
+          "n": 24,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.5,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 12,
+            "fn": 12
+          }
+        }
+      },
+      "admin": {
+        "flagged": {
+          "n": 2,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6667,
+          "false_positive_rate": null,
+          "accuracy": 0.5,
+          "confusion": {
+            "tp": 1,
+            "fp": 0,
+            "tn": 0,
+            "fn": 1
+          }
+        },
+        "phishing": {
+          "n": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": null,
+          "accuracy": 0.0,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 0,
+            "fn": 2
+          }
+        }
+      },
+      "uci_sms": {
+        "flagged": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 0.0303,
+          "f1": 0.0588,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.8923,
+          "confusion": {
+            "tp": 1,
+            "fp": 0,
+            "tn": 264,
+            "fn": 32
+          }
+        },
+        "phishing": {
+          "n": 297,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.8889,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 264,
+            "fn": 33
+          }
+        }
+      },
+      "uci": {
+        "flagged": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 0.0303,
+          "f1": 0.0588,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.8923,
+          "confusion": {
+            "tp": 1,
+            "fp": 0,
+            "tn": 264,
+            "fn": 32
+          }
+        },
+        "phishing": {
+          "n": 297,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.8889,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 264,
+            "fn": 33
+          }
+        }
+      }
+    },
+    "pipeline_no_ai": {
+      "synthetic": {
+        "flagged": {
+          "n": 178,
+          "precision": 0.9,
+          "recall": 0.8438,
+          "f1": 0.871,
+          "false_positive_rate": 0.1098,
+          "accuracy": 0.8652,
+          "confusion": {
+            "tp": 81,
+            "fp": 9,
+            "tn": 73,
+            "fn": 15
+          }
+        },
+        "phishing": {
+          "n": 178,
+          "precision": 0.9516,
+          "recall": 0.6146,
+          "f1": 0.7468,
+          "false_positive_rate": 0.0366,
+          "accuracy": 0.7753,
+          "confusion": {
+            "tp": 59,
+            "fp": 3,
+            "tn": 79,
+            "fn": 37
+          }
+        }
+      },
+      "all_local": {
+        "flagged": {
+          "n": 204,
+          "precision": 0.899,
+          "recall": 0.8091,
+          "f1": 0.8517,
+          "false_positive_rate": 0.1064,
+          "accuracy": 0.848,
+          "confusion": {
+            "tp": 89,
+            "fp": 10,
+            "tn": 84,
+            "fn": 21
+          }
+        },
+        "phishing": {
+          "n": 204,
+          "precision": 0.9538,
+          "recall": 0.5636,
+          "f1": 0.7086,
+          "false_positive_rate": 0.0319,
+          "accuracy": 0.75,
+          "confusion": {
+            "tp": 62,
+            "fp": 3,
+            "tn": 91,
+            "fn": 48
+          }
+        }
+      },
+      "all": {
+        "flagged": {
+          "n": 501,
+          "precision": 0.9231,
+          "recall": 0.8392,
+          "f1": 0.8791,
+          "false_positive_rate": 0.0279,
+          "accuracy": 0.9341,
+          "confusion": {
+            "tp": 120,
+            "fp": 10,
+            "tn": 348,
+            "fn": 23
+          }
+        },
+        "phishing": {
+          "n": 501,
+          "precision": 0.9595,
+          "recall": 0.4965,
+          "f1": 0.6544,
+          "false_positive_rate": 0.0084,
+          "accuracy": 0.8503,
+          "confusion": {
+            "tp": 71,
+            "fp": 3,
+            "tn": 355,
+            "fn": 72
+          }
+        }
+      },
+      "challenge": {
+        "flagged": {
+          "n": 24,
+          "precision": 0.875,
+          "recall": 0.5833,
+          "f1": 0.7,
+          "false_positive_rate": 0.0833,
+          "accuracy": 0.75,
+          "confusion": {
+            "tp": 7,
+            "fp": 1,
+            "tn": 11,
+            "fn": 5
+          }
+        },
+        "phishing": {
+          "n": 24,
+          "precision": 1.0,
+          "recall": 0.1667,
+          "f1": 0.2857,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.5833,
+          "confusion": {
+            "tp": 2,
+            "fp": 0,
+            "tn": 12,
+            "fn": 10
+          }
+        }
+      },
+      "admin": {
+        "flagged": {
+          "n": 2,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6667,
+          "false_positive_rate": null,
+          "accuracy": 0.5,
+          "confusion": {
+            "tp": 1,
+            "fp": 0,
+            "tn": 0,
+            "fn": 1
+          }
+        },
+        "phishing": {
+          "n": 2,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6667,
+          "false_positive_rate": null,
+          "accuracy": 0.5,
+          "confusion": {
+            "tp": 1,
+            "fp": 0,
+            "tn": 0,
+            "fn": 1
+          }
+        }
+      },
+      "uci_sms": {
+        "flagged": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 0.9394,
+          "f1": 0.9688,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.9933,
+          "confusion": {
+            "tp": 31,
+            "fp": 0,
+            "tn": 264,
+            "fn": 2
+          }
+        },
+        "phishing": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 0.2727,
+          "f1": 0.4286,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.9192,
+          "confusion": {
+            "tp": 9,
+            "fp": 0,
+            "tn": 264,
+            "fn": 24
+          }
+        }
+      },
+      "uci": {
+        "flagged": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 0.9394,
+          "f1": 0.9688,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.9933,
+          "confusion": {
+            "tp": 31,
+            "fp": 0,
+            "tn": 264,
+            "fn": 2
+          }
+        },
+        "phishing": {
+          "n": 297,
+          "precision": 1.0,
+          "recall": 0.2727,
+          "f1": 0.4286,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.9192,
+          "confusion": {
+            "tp": 9,
+            "fp": 0,
+            "tn": 264,
+            "fn": 24
+          }
+        }
+      }
+    },
+    "pipeline_with_ai": {
+      "synthetic": {
+        "flagged": {
+          "n": 34,
+          "precision": 0.9091,
+          "recall": 1.0,
+          "f1": 0.9524,
+          "false_positive_rate": 0.1429,
+          "accuracy": 0.9412,
+          "confusion": {
+            "tp": 20,
+            "fp": 2,
+            "tn": 12,
+            "fn": 0
+          }
+        },
+        "phishing": {
+          "n": 34,
+          "precision": 1.0,
+          "recall": 0.7,
+          "f1": 0.8235,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.8235,
+          "confusion": {
+            "tp": 14,
+            "fp": 0,
+            "tn": 14,
+            "fn": 6
+          }
+        }
+      },
+      "all_local": {
+        "flagged": {
+          "n": 40,
+          "precision": 0.92,
+          "recall": 0.9583,
+          "f1": 0.9388,
+          "false_positive_rate": 0.125,
+          "accuracy": 0.925,
+          "confusion": {
+            "tp": 23,
+            "fp": 2,
+            "tn": 14,
+            "fn": 1
+          }
+        },
+        "phishing": {
+          "n": 40,
+          "precision": 1.0,
+          "recall": 0.5833,
+          "f1": 0.7368,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.75,
+          "confusion": {
+            "tp": 14,
+            "fp": 0,
+            "tn": 16,
+            "fn": 10
+          }
+        }
+      },
+      "challenge": {
+        "flagged": {
+          "n": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 1.0,
+          "confusion": {
+            "tp": 3,
+            "fp": 0,
+            "tn": 2,
+            "fn": 0
+          }
+        },
+        "phishing": {
+          "n": 5,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "accuracy": 0.4,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 2,
+            "fn": 3
+          }
+        }
+      },
+      "admin": {
+        "flagged": {
+          "n": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": null,
+          "accuracy": 0.0,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 0,
+            "fn": 1
+          }
+        },
+        "phishing": {
+          "n": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": null,
+          "accuracy": 0.0,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 0,
+            "fn": 1
+          }
+        }
+      }
+    },
+    "ai_only": {
+      "all_local": {
+        "flagged": {
+          "n": 40,
+          "precision": 0.9231,
+          "recall": 1.0,
+          "f1": 0.96,
+          "false_positive_rate": 0.125,
+          "accuracy": 0.95,
+          "confusion": {
+            "tp": 24,
+            "fp": 2,
+            "tn": 14,
+            "fn": 0
+          }
+        },
+        "phishing": {
+          "n": 40,
+          "precision": 0.9583,
+          "recall": 0.9583,
+          "f1": 0.9583,
+          "false_positive_rate": 0.0625,
+          "accuracy": 0.95,
+          "confusion": {
+            "tp": 23,
+            "fp": 1,
+            "tn": 15,
+            "fn": 1
+          }
+        }
+      }
+    }
+  }
+}

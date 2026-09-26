@@ -19,6 +19,8 @@ export interface AnalysisDetail extends DashboardMessage {
   text: string
   urls: string[]
   evidence: string[]
+  /** Same length as `evidence`: true for reassuring items; absent on older analyses */
+  evidence_positive?: boolean[]
   level: RiskLevel | null
   signals: Partial<Record<SignalKey, number | null>> | null
   weights: Partial<Record<SignalKey, number>> | null
@@ -40,6 +42,7 @@ export interface HistoryQuery {
   page?: number
   per_page?: number
   status?: MessageStatus | ''
+  source?: 'web' | 'mailbox' | 'forward' | 'share' | ''
   q?: string
 }
 

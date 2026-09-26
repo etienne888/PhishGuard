@@ -15,11 +15,13 @@
     const isProfileOpen = ref(false)
     const profileRef = ref<HTMLElement | null>(null)
 
+    // Router links (not bare #anchors) so they also work from /check, /learn, /dashboard…
     const links = [
-        { href: '#analyze', key: 'nav.analyze' as const },
-        { href: '#education', key: 'nav.education' as const },
-        { href: '#threat-intel', key: 'nav.threatIntel' as const },
-        { href: '#about', key: 'nav.about' as const }
+        { href: '/check', key: 'nav.analyze' },
+        { href: '/learn', key: 'ux.nav.learn' },
+        { href: '/#alerts', key: 'ux.nav.alerts' },
+        { href: '/#threat-intel', key: 'nav.threatIntel' },
+        { href: '/#about', key: 'nav.about' }
     ]
 
     // Dark mode: shared with the admin header (persisted in localStorage)
@@ -58,7 +60,7 @@
 
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
-                    <a href="#" class="flex items-center gap-2.5">
+                    <RouterLink to="/" class="flex items-center gap-2.5">
                         <div class="relative">
                             <span class="absolute inset-0 rounded-full bg-cyan-400/0 dark:bg-cyan-400/30 blur-md transition-colors" />
                             <AppLogo :size="36" class="relative" />
@@ -79,16 +81,16 @@
                                 <span class="h-1.5 w-1.5 rounded-full bg-red-500" />
                                 <span class="h-1.5 w-1.5 rounded-full bg-yellow-500" />
                             </span>
-                            <span class="text-emerald-700 dark:text-slate-400">Cameroun</span>
+                            <span class="text-emerald-700 dark:text-slate-400">{{ t('footer.country') }}</span>
                         </span>
-                    </a>
+                    </RouterLink>
 
                     <div class="hidden md:flex items-center gap-1">
-                        <a v-for="link in links" :key="link.href" :href="link.href"
+                        <RouterLink v-for="link in links" :key="link.href" :to="link.href"
                             class="group relative px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-cyan-300 transition-colors">
                             {{ t(link.key) }}
                             <span class="absolute left-4 right-4 -bottom-px h-px bg-blue-600 dark:bg-cyan-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-center" />
-                        </a>
+                        </RouterLink>
                     </div>
 
                     <div class="hidden sm:flex items-center gap-2">
@@ -152,6 +154,12 @@
                                 <RouterLink to="/dashboard" class="block px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-blue-50/60 dark:hover:bg-white/5 dark:hover:text-cyan-300" @click="isProfileOpen = false">
                                     {{ t('nav.dashboard') }}
                                 </RouterLink>
+                                <RouterLink to="/dashboard/mailboxes" class="block px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-blue-50/60 dark:hover:bg-white/5 dark:hover:text-cyan-300" @click="isProfileOpen = false">
+                                    {{ t('ux.nav.mailboxes') }}
+                                </RouterLink>
+                                <RouterLink to="/privacy" class="block px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-blue-50/60 dark:hover:bg-white/5 dark:hover:text-cyan-300" @click="isProfileOpen = false">
+                                    {{ t('ux.nav.privacy') }}
+                                </RouterLink>
                                 <RouterLink v-if="user.is_admin" to="/admin" class="block px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-blue-50/60 dark:hover:bg-white/5 dark:hover:text-cyan-300" @click="isProfileOpen = false">
                                     {{ t('nav.admin') }}
                                 </RouterLink>
@@ -183,11 +191,14 @@
                 </div>
 
                 <div v-if="isMenuOpen" class="md:hidden pb-4 flex flex-col gap-1 border-t border-slate-100 dark:border-slate-800 pt-3">
-                    <a v-for="link in links" :key="link.href" :href="link.href"
+                    <RouterLink v-for="link in links" :key="link.href" :to="link.href"
                         class="px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 rounded-lg hover:bg-blue-50/60 dark:hover:bg-white/5"
                         @click="isMenuOpen = false">
                         {{ t(link.key) }}
-                    </a>
+                    </RouterLink>
+                    <select :value="locale" :aria-label="t('nav.language')" class="mx-3 mt-1 bg-transparent text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2" @change="changeLocale">
+                        <option v-for="option in locales" :key="option.code" :value="option.code">{{ option.nativeLabel }}</option>
+                    </select>
                     <template v-if="!user">
                         <div class="flex gap-2 mt-2">
                             <button
@@ -207,6 +218,9 @@
                             <p class="px-3 text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{{ user.displayName || t('nav.user') }}</p>
                             <RouterLink to="/dashboard" class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300" @click="isMenuOpen = false">
                                 {{ t('nav.dashboard') }}
+                            </RouterLink>
+                            <RouterLink to="/dashboard/mailboxes" class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300" @click="isMenuOpen = false">
+                                {{ t('ux.nav.mailboxes') }}
                             </RouterLink>
                             <RouterLink v-if="user.is_admin" to="/admin" class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300" @click="isMenuOpen = false">
                                 {{ t('nav.admin') }}

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import type { AnalysisResult } from '@/types'
+import { useI18n } from '@/i18n'
 
 /**
  * Full-screen verdict pop-up, antivirus style: red pulsing alarm for a threat,
@@ -8,24 +9,25 @@ import type { AnalysisResult } from '@/types'
  */
 const props = defineProps<{ result: AnalysisResult }>()
 const emit = defineEmits<{ close: []; details: [] }>()
+const { t } = useI18n()
 
 const tone = computed(() => ({
   phishing: {
-    title: 'MENACE DÉTECTÉE',
-    subtitle: 'Ce message est très probablement une arnaque.',
-    advice: 'Ne cliquez sur aucun lien et ne donnez aucun code.',
+    title: t('alert.phishing.title'),
+    subtitle: t('alert.phishing.subtitle'),
+    advice: t('alert.phishing.advice'),
     className: 'danger',
   },
   suspicious: {
-    title: 'MESSAGE SUSPECT',
-    subtitle: 'Plusieurs signaux inquiétants ont été trouvés.',
-    advice: "Vérifiez auprès du canal officiel avant d'agir.",
+    title: t('alert.suspicious.title'),
+    subtitle: t('alert.suspicious.subtitle'),
+    advice: t('alert.suspicious.advice'),
     className: 'warning',
   },
   legitimate: {
-    title: 'AUCUNE MENACE',
-    subtitle: 'Aucun signe d’arnaque important n’a été trouvé.',
-    advice: 'Restez tout de même vigilant.',
+    title: t('alert.legitimate.title'),
+    subtitle: t('alert.legitimate.subtitle'),
+    advice: t('alert.legitimate.advice'),
     className: 'safe',
   },
 }[props.result.verdict]))
@@ -54,13 +56,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       </div>
 
       <h2 class="title">{{ tone.title }}</h2>
-      <p class="score">Score de risque : <b>{{ Math.round(result.score) }}/100</b></p>
+      <p class="score">{{ t('alert.score') }} <b>{{ Math.round(result.score) }}/100</b></p>
       <p class="text-slate-600 text-sm mt-2">{{ tone.subtitle }}</p>
       <p class="advice">{{ tone.advice }}</p>
 
       <div class="mt-5 flex flex-wrap justify-center gap-2">
-        <button class="btn-primary" @click="emit('details')">Voir l'explication</button>
-        <button class="btn-ghost" @click="emit('close')">Fermer</button>
+        <button class="btn-primary" @click="emit('details')">{{ t('alert.explain') }}</button>
+        <button class="btn-ghost" @click="emit('close')">{{ t('common.close') }}</button>
       </div>
     </div>
   </div>

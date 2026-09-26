@@ -43,6 +43,11 @@ def _serialize(user: User) -> dict:
         'auth_provider': user.auth_provider,
         'created_at': user.created_at.isoformat() if user.created_at else None,
         'last_login': user.last_login.isoformat() if user.last_login else None,
+        'job_title': user.job_title,
+        'organization': user.organization,
+        'region': user.region,
+        'city': user.city,
+        'password_changed_at': user.password_changed_at.isoformat() if user.password_changed_at else None,
         # ?v= busts the browser cache after a new upload
         'avatar_url': f'/api/user/avatar/{user.id}?v={version}' if has_avatar else None,
     }
@@ -97,11 +102,37 @@ def change_password():
     if not _check_password(data.get('current_password')):
         return err('INVALID_PASSWORD', 'Mot de passe actuel incorrect.', 403)
     new_password = data.get('new_password') or ''
-    if len(new_password) < 8:
-        return err('WEAK_PASSWORD', 'Le nouveau mot de passe doit contenir au moins 8 caractères.')
+    problem = password_policy_problem(new_password)
+    if problem:
+        return err('WEAK_PASSWORD', problem)
+    if _check_password(new_password):
+        return err('SAME_PASSWORD', "Le nouveau mot de passe doit être différent de l'ancien.")
+    from datetime import datetime
+    from flask_login import login_user
+    from app.services import audit_service
     current_user.password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    current_user.password_changed_at = datetime.utcnow()
+    # Every other session (maybe the attacker's) ends; this one is renewed
+    current_user.session_version = (current_user.session_version or 1) + 1
     db.session.commit()
-    return ok({'changed': True})
+    login_user(current_user)
+    audit_service.record('password_changed', user_id=current_user.id)
+    return ok({'changed': True, 'other_sessions_closed': True})
+
+
+def password_policy_problem(password: str) -> str | None:
+    """First unmet rule of the platform password policy, or None."""
+    from app.services import settings_service
+    policy = settings_service.get_settings()
+    if len(password) < policy['password_min_length']:
+        return f"Le mot de passe doit contenir au moins {policy['password_min_length']} caractères."
+    if policy['password_require_upper'] and not re.search(r'[A-Z]', password):
+        return 'Le mot de passe doit contenir une majuscule.'
+    if policy['password_require_number'] and not re.search(r'\d', password):
+        return 'Le mot de passe doit contenir un chiffre.'
+    if policy['password_require_symbol'] and not re.search(r'[^A-Za-z0-9]', password):
+        return 'Le mot de passe doit contenir un symbole.'
+    return None
 
 
 @user_profile_bp.route('/profile/avatar', methods=['POST'])

@@ -1,18 +1,23 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import logoMark from '@/assets/Images/logo-mark.png'
+import { useI18n } from '@/i18n'
 
 /**
  * Antivirus-style scanner shown while an analysis runs. The steps mirror the
  * real pipeline (backend/app/pipeline); they advance on a timer because the
  * backend answers in one response.
  */
+const { t } = useI18n()
+
+// `label` is the key under scan.step.*
 const STEPS = [
-  { label: 'Lecture du message', icon: '📨' },
-  { label: 'Vérification des liens', icon: '🔗' },
-  { label: "Contrôle de l'expéditeur", icon: '🏛️' },
-  { label: 'Modèle anti-phishing', icon: '🧠' },
-  { label: "Analyse par l'IA", icon: '🤖' },
-  { label: 'Calcul du score final', icon: '⚖️' },
+  { label: 'read', icon: '📨' },
+  { label: 'links', icon: '🔗' },
+  { label: 'sender', icon: '🏛️' },
+  { label: 'model', icon: '🧠' },
+  { label: 'ai', icon: '🤖' },
+  { label: 'score', icon: '⚖️' },
 ]
 
 const active = ref(0)
@@ -34,13 +39,11 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <span class="ring ring-2"></span>
       <span class="ring ring-3"></span>
       <span class="sweep"></span>
-      <svg viewBox="0 0 24 24" class="shield" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      </svg>
+      <img :src="logoMark" alt="" class="shield" />
     </div>
 
     <div class="flex-1 min-w-0">
-      <p class="text-sm font-semibold text-cyan-200">Analyse en cours…</p>
+      <p class="text-sm font-semibold text-cyan-200">{{ t('scan.inProgress') }}</p>
       <ul class="mt-2 space-y-1.5">
         <li v-for="(step, index) in STEPS" :key="step.label" class="flex items-center gap-2 text-xs transition-colors"
             :class="index < active ? 'text-emerald-300' : index === active ? 'text-white' : 'text-slate-500'">
@@ -49,7 +52,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
             <span v-else-if="index === active" class="dot"></span>
             <template v-else>•</template>
           </span>
-          <span>{{ step.icon }} {{ step.label }}</span>
+          <span>{{ step.icon }} {{ t(`scan.step.${step.label}`) }}</span>
         </li>
       </ul>
       <div class="mt-3 h-1 rounded-full bg-slate-700 overflow-hidden">
@@ -100,9 +103,10 @@ onBeforeUnmount(() => window.clearInterval(timer))
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 34px;
-  height: 34px;
-  color: #67e8f9;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.55));
   animation: breathe 1.6s ease-in-out infinite;
 }
 .dot {

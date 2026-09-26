@@ -21,7 +21,11 @@ from app import db
 from app.api.admin import admin_required
 from app.api.responses import err, ok
 from app.api.user_dashboard import _analysis_detail, _analysis_status, _details, _message
+from app.api.security import sudo_required
 from app.models import Analysis, User, WhitelistDomain
+from app.services import audit_service, triage_service
+from app.services.indicators import BRAND_RE
+from app.pipeline.i18n import request_lang, tr
 
 admin_ops_bp = Blueprint('admin_ops', __name__)
 
@@ -29,11 +33,10 @@ BORDERLINE = (40, 70)  # scores the engine is least sure about
 REVIEW_LABELS = {'phishing', 'safe'}
 WHITELIST_CATEGORIES = {'mobile_money', 'banking', 'telecom', 'government', 'other'}
 DOMAIN_RE = re.compile(r'^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$')
-BRAND_RE = re.compile(r"(?:imite|nom de) ([A-ZÀ-Ý][\w'’À-ÿ\- ]+?)(?: sans| \(|\s*:|$)")
 
 
 def _source(analysis: Analysis) -> str:
-    return analysis.user.email if analysis.user else 'Visiteur (page d’accueil)'
+    return analysis.user.email if analysis.user else tr(request_lang(), 'source.visitor')
 
 
 def _queue_item(analysis: Analysis) -> dict:
@@ -45,24 +48,28 @@ def _queue_item(analysis: Analysis) -> dict:
         'review_note': analysis.review_note,
         'reviewer': db.session.get(User, analysis.reviewed_by).email if analysis.reviewed_by else None,
         'reason': 'reported' if analysis.reported_at else 'borderline',
+        'review_source': analysis.review_source or ('admin' if analysis.review_label else None),
+        'triage_label': analysis.triage_label,
+        'triage_confidence': analysis.triage_confidence,
     }
 
 
 ENGINE_NAME = os.getenv('ENGINE_NAME', 'PhishGuard-XGB v2.4.1')
-CAMEROON_HQ = {'lat': 3.848, 'lon': 11.5021, 'label': 'Yaoundé, Cameroun'}
+CAMEROON_HQ = {'lat': 3.848, 'lon': 11.5021}
 
 
 def _engine_info() -> dict:
     from app.pipeline import _load_ml_model
     from app.pipeline.url_intel import get_xgb_model, xgb_enabled
     xgb_trained = get_xgb_model() is not None
+    lang = request_lang()
     return {
         'name': ENGINE_NAME,
         'components': [
-            {'key': 'xgb', 'label': 'XGBoost (liens)', 'active': xgb_trained and xgb_enabled(),
-             'note': None if xgb_enabled() else ('biais détecté — à réentraîner' if xgb_trained else 'non entraîné')},
-            {'key': 'nb', 'label': 'Naive Bayes (texte)', 'active': _load_ml_model() is not None},
-            {'key': 'rules', 'label': 'Règles expertes CM', 'active': True},
+            {'key': 'xgb', 'label': tr(lang, 'engine.xgb'), 'active': xgb_trained and xgb_enabled(),
+             'note': None if xgb_enabled() else tr(lang, 'engine.xgb_biased' if xgb_trained else 'engine.xgb_untrained')},
+            {'key': 'nb', 'label': tr(lang, 'engine.nb'), 'active': _load_ml_model() is not None},
+            {'key': 'rules', 'label': tr(lang, 'engine.rules'), 'active': True},
             {'key': 'ai', 'label': os.getenv('CLAUDE_MODEL', 'claude-opus-5'), 'active': bool(os.getenv('ANTHROPIC_API_KEY'))},
         ],
         'ai_enabled': bool(os.getenv('ANTHROPIC_API_KEY')),
@@ -118,7 +125,7 @@ def threat_map():
 
     countries = Counter(p['country'] for p in points for _ in range(p['count']))
     return ok({
-        'target': CAMEROON_HQ,
+        'target': {**CAMEROON_HQ, 'label': tr(request_lang(), 'map.hq')},
         'days': days,
         'scope': 'all' if include_safe else 'threats',
         'analyses_scanned': len(rows),
@@ -157,7 +164,7 @@ def overview():
             if host:
                 domains[host] += 1
         for item in _details(a).get('evidence', []):
-            if str(item).startswith('IA :'):
+            if str(item).startswith(('IA :', 'AI:')):
                 continue  # free-text AI reasons, not the engine's brand checks
             match = BRAND_RE.search(str(item))
             if match:
@@ -215,6 +222,8 @@ def _queue_query(view: str):
         return query.filter(Analysis.review_label.is_(None), Analysis.score_risk.between(*BORDERLINE))
     if view == 'reviewed':
         return query.filter(Analysis.review_label.isnot(None))
+    if view == 'auto':
+        return query.filter(Analysis.review_source == 'auto')
     return query.filter(Analysis.review_label.is_(None),
                         db.or_(Analysis.reported_at.isnot(None), Analysis.score_risk.between(*BORDERLINE)))
 
@@ -250,17 +259,57 @@ def review_decision(analysis_id: int):
         return err('NOT_FOUND', 'Analyse introuvable.', 404)
     data = request.get_json(silent=True) or {}
     label = data.get('label')
+    previous = analysis.review_label
     if label == 'reset':
         analysis.review_label = analysis.reviewed_by = analysis.reviewed_at = analysis.review_note = None
+        analysis.review_source = None
     elif label in REVIEW_LABELS:
         analysis.review_label = label
+        analysis.review_source = 'admin'  # a human decision always wins over auto-triage
         analysis.reviewed_by = current_user.id
         analysis.reviewed_at = datetime.utcnow()
         analysis.review_note = (data.get('note') or '')[:1000] or None
     else:
         return err('INVALID_LABEL', "Décision attendue : 'phishing', 'safe' ou 'reset'.")
     db.session.commit()
+    audit_service.record('admin_review_decision', details={'analysis_id': analysis.id, 'label': label,
+                                                           'previous': previous})
     return ok(_queue_item(analysis))
+
+
+@admin_ops_bp.route('/review-queue/bulk', methods=['POST'])
+@admin_required
+def review_bulk():
+    """Accept the engine's suggestion for several items at once."""
+    ids = [int(i) for i in (request.get_json(silent=True) or {}).get('ids', [])][:200]
+    done = 0
+    for analysis in Analysis.query.filter(Analysis.id.in_(ids)).all():
+        if analysis.triage_label is None:
+            triage_service.triage(analysis, commit=False)
+        if analysis.triage_label:
+            analysis.review_label = analysis.triage_label
+            analysis.review_source = 'admin'
+            analysis.reviewed_by = current_user.id
+            analysis.reviewed_at = datetime.utcnow()
+            analysis.review_note = f'Suggestion acceptée ({analysis.triage_confidence or 0:.0f} %)'
+            done += 1
+    db.session.commit()
+    audit_service.record('admin_review_bulk', details={'count': done})
+    return ok({'decided': done})
+
+
+@admin_ops_bp.route('/triage', methods=['GET'])
+@admin_required
+def triage_stats():
+    return ok(triage_service.stats())
+
+
+@admin_ops_bp.route('/triage/run', methods=['POST'])
+@admin_required
+def triage_run():
+    result = triage_service.run_all()
+    audit_service.record('admin_triage_run', details=result)
+    return ok({**result, **triage_service.stats()})
 
 
 @admin_ops_bp.route('/review-queue/export', methods=['GET'])
@@ -270,7 +319,9 @@ def export_labels():
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(['text', 'label', 'engine_score', 'reviewed_at'])
-    for a in Analysis.query.filter(Analysis.review_label.isnot(None)).order_by(Analysis.reviewed_at).all():
+    # Human decisions only: automatic ones would teach the model its own mistakes
+    for a in (Analysis.query.filter(Analysis.review_label.isnot(None), Analysis.review_source.is_distinct_from('auto'))
+              .order_by(Analysis.reviewed_at).all()):
         writer.writerow([a.text_source, 1 if a.review_label == 'phishing' else 0,
                          round(float(a.score_risk), 2), a.reviewed_at.isoformat() if a.reviewed_at else ''])
     return Response(buffer.getvalue(), mimetype='text/csv',
@@ -283,7 +334,22 @@ def _serialize_domain(row: WhitelistDomain) -> dict:
     return {
         'id': row.id, 'domain': row.domain, 'institution': row.institution, 'category': row.category,
         'is_active': bool(row.is_active), 'created_at': row.created_at.isoformat() if row.created_at else None,
+        'updated_at': row.updated_at.isoformat() if row.updated_at else None,
+        # Custom logo, else the site's own favicon (fetched by the browser)
+        'logo_url': row.logo_url or f'https://www.google.com/s2/favicons?domain={row.domain}&sz=128',
+        'custom_logo': bool(row.logo_url),
+        'website': row.website or f'https://{row.domain}',
+        'health': row.health,
+        'support_contact': row.support_contact,
+        'last_checked_at': row.last_checked_at.isoformat() if row.last_checked_at else None,
     }
+
+
+def _clean_url(value) -> str | None:
+    value = (value or '').strip()
+    if not value:
+        return None
+    return value[:500] if re.match(r'^https://[^\s]+$', value) else ''
 
 
 def _clean_domain(value: str) -> str:
@@ -319,9 +385,15 @@ def create_whitelist():
         return err('INVALID_CATEGORY', 'Catégorie inconnue.')
     if WhitelistDomain.query.filter_by(domain=domain).first():
         return err('DUPLICATE', 'Ce domaine est déjà dans la liste blanche.', 409)
-    row = WhitelistDomain(domain=domain, institution=institution[:255], category=category, is_active=True)
+    logo_url, website = _clean_url(data.get('logo_url')), _clean_url(data.get('website'))
+    if logo_url == '' or website == '':
+        return err('INVALID_URL', 'Les liens doivent commencer par https://')
+    row = WhitelistDomain(domain=domain, institution=institution[:255], category=category, is_active=True,
+                          logo_url=logo_url, website=website, updated_at=datetime.utcnow(),
+                          support_contact=(data.get('support_contact') or '').strip()[:160] or None)
     db.session.add(row)
     db.session.commit()
+    audit_service.record('admin_allowlist_added', details={'domain': domain, 'institution': institution})
     return ok(_serialize_domain(row), status=201)
 
 
@@ -340,16 +412,61 @@ def update_whitelist(row_id: int):
         if data['category'] not in WHITELIST_CATEGORIES:
             return err('INVALID_CATEGORY', 'Catégorie inconnue.')
         row.category = data['category']
+    if 'domain' in data:
+        domain = _clean_domain(data['domain'])
+        if not DOMAIN_RE.match(domain):
+            return err('INVALID_DOMAIN', 'Nom de domaine invalide (ex. mtn.cm).')
+        if domain != row.domain and WhitelistDomain.query.filter_by(domain=domain).first():
+            return err('DUPLICATE', 'Ce domaine est déjà dans la liste blanche.', 409)
+        row.domain = domain
+    if 'support_contact' in data:
+        row.support_contact = (data['support_contact'] or '').strip()[:160] or None
+    for field in ('logo_url', 'website'):
+        if field in data:
+            value = _clean_url(data[field])
+            if value == '':
+                return err('INVALID_URL', 'Les liens doivent commencer par https://')
+            setattr(row, field, value)
+    row.updated_at = datetime.utcnow()
+    db.session.commit()
+    audit_service.record('admin_allowlist_updated', details={'domain': row.domain, 'fields': sorted(data)})
+    return ok(_serialize_domain(row))
+
+
+@admin_ops_bp.route('/whitelist/<int:row_id>/check', methods=['POST'])
+@admin_required
+def check_whitelist(row_id: int):
+    from app.services.domain_health import check
+    row = db.session.get(WhitelistDomain, row_id)
+    if not row:
+        return err('NOT_FOUND', 'Entrée introuvable.', 404)
+    row.health, row.last_checked_at = check(row.domain), datetime.utcnow()
     db.session.commit()
     return ok(_serialize_domain(row))
 
 
+@admin_ops_bp.route('/whitelist/check-all', methods=['POST'])
+@admin_required
+def check_all_whitelist():
+    from app.services.domain_health import check_many
+    rows = WhitelistDomain.query.all()
+    results = check_many([r.domain for r in rows])
+    now = datetime.utcnow()
+    for r in rows:
+        r.health, r.last_checked_at = results.get(r.domain), now
+    db.session.commit()
+    return ok({'items': [_serialize_domain(r) for r in rows], 'total': len(rows)})
+
+
 @admin_ops_bp.route('/whitelist/<int:row_id>', methods=['DELETE'])
 @admin_required
+@sudo_required
 def delete_whitelist(row_id: int):
     row = db.session.get(WhitelistDomain, row_id)
     if not row:
         return err('NOT_FOUND', 'Entrée introuvable.', 404)
+    domain = row.domain
     db.session.delete(row)
     db.session.commit()
+    audit_service.record('admin_allowlist_removed', details={'domain': domain}, severity='warning')
     return ok({'deleted': True})

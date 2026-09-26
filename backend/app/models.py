@@ -23,13 +23,38 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime, nullable=True)
     login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)
+    # SOC platform (database/scripts/08_soc_platform.sql)
+    session_version = db.Column(db.Integer, default=1, nullable=False)  # bump = sign out everywhere
+    approval_status = db.Column(db.String(20), default='approved', nullable=False)  # approved|pending|review|rejected
+    approval_note = db.Column(db.Text, nullable=True)
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    region = db.Column(db.String(60), nullable=True)
+    city = db.Column(db.String(120), nullable=True)
+    job_title = db.Column(db.String(120), nullable=True)
+    organization = db.Column(db.String(160), nullable=True)
+    terms_accepted_at = db.Column(db.DateTime, nullable=True)
+    password_changed_at = db.Column(db.DateTime, nullable=True)
+    registration_ip = db.Column(db.String(64), nullable=True)
+    registration_user_agent = db.Column(db.String(400), nullable=True)
+    registration_geo = db.Column(db.JSON, nullable=True)
+    risk_score = db.Column(db.Integer, default=0, nullable=False)
+    risk_flags = db.Column(db.JSON, nullable=True)
+    last_login_ip = db.Column(db.String(64), nullable=True)
+    # User experience (database/scripts/09_user_experience.sql)
+    onboarded_at = db.Column(db.DateTime, nullable=True)
+    quiz_xp = db.Column(db.Integer, default=0, nullable=False)
+    quiz_answered = db.Column(db.Integer, default=0, nullable=False)
+    quiz_correct = db.Column(db.Integer, default=0, nullable=False)
     
     # Relationships
     # analyses.reviewed_by also points at users, so name the owning key explicitly
     analyses = db.relationship('Analysis', backref='user', lazy=True, foreign_keys='Analysis.user_id')
-    
+
     def get_id(self):
-        return str(self.id)
+        # The session cookie stores "id:version"; bumping session_version invalidates
+        # every existing session of this account (see load_user in app/__init__.py)
+        return f"{self.id}:{self.session_version or 1}"
 
 class Analysis(db.Model):
     __tablename__ = 'analyses'
@@ -51,6 +76,20 @@ class Analysis(db.Model):
     reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     reviewed_at = db.Column(db.DateTime, nullable=True)
     review_note = db.Column(db.Text, nullable=True)
+    review_source = db.Column(db.String(10), nullable=True)  # 'admin' | 'auto'
+    triage_label = db.Column(db.String(20), nullable=True)  # engine suggestion: 'phishing' | 'safe'
+    triage_confidence = db.Column(db.Float, nullable=True)  # 0-100
+    duration_ms = db.Column(db.Integer, nullable=True)
+    # Origin + visitor claim + feedback (database/scripts/09_user_experience.sql)
+    source = db.Column(db.String(20), default='web', nullable=False)  # web | mailbox | forward | share
+    mailbox_id = db.Column(db.Integer, db.ForeignKey('mailbox_connections.id', ondelete='SET NULL'), nullable=True)
+    external_id = db.Column(db.String(255), nullable=True)
+    claim_token_hash = db.Column(db.String(64), nullable=True)
+    claim_expires_at = db.Column(db.DateTime, nullable=True)
+    claimed_at = db.Column(db.DateTime, nullable=True)
+    feedback = db.Column(db.SmallInteger, nullable=True)  # 1 helpful, -1 not helpful
+    feedback_note = db.Column(db.Text, nullable=True)
+    feedback_at = db.Column(db.DateTime, nullable=True)
 
 class WhitelistDomain(db.Model):
     __tablename__ = 'whitelist_domains'
@@ -61,6 +100,12 @@ class WhitelistDomain(db.Model):
     category = db.Column(db.String(100), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    logo_url = db.Column(db.String(500), nullable=True)
+    website = db.Column(db.String(255), nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=True)
+    last_checked_at = db.Column(db.DateTime, nullable=True)
+    health = db.Column(db.JSON, nullable=True)  # dns, https, ssl_days_left, latency_ms
+    support_contact = db.Column(db.String(160), nullable=True)  # official hotline shown in "what to do"
 
 class SuspiciousKeyword(db.Model):
     __tablename__ = 'suspicious_keywords'
@@ -150,3 +195,78 @@ class VerificationChallenge(db.Model):
     attempts = db.Column(db.Integer, default=0, nullable=False)
     consumed_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class SecurityEvent(db.Model):
+    """Login history + audit trail of admin actions (one table, filtered by event_type)."""
+    __tablename__ = 'security_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_type = db.Column(db.String(40), nullable=False)
+    severity = db.Column(db.String(10), default='info', nullable=False)  # info | warning | critical
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    ip = db.Column(db.String(64), nullable=True)
+    user_agent = db.Column(db.String(400), nullable=True)
+    geo = db.Column(db.JSON, nullable=True)
+    details = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Incident(db.Model):
+    """A correlated campaign: several dangerous messages sharing one indicator."""
+    __tablename__ = 'incidents'
+
+    id = db.Column(db.Integer, primary_key=True)
+    ref = db.Column(db.String(30), unique=True, nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    indicator = db.Column(db.String(255), nullable=True)
+    indicator_type = db.Column(db.String(20), nullable=True)  # domain | brand | sender
+    category = db.Column(db.String(60), nullable=True)
+    severity = db.Column(db.String(10), default='medium', nullable=False)
+    status = db.Column(db.String(20), default='open', nullable=False)
+    source = db.Column(db.String(10), default='auto', nullable=False)
+    analysis_ids = db.Column(db.JSON, default=list, nullable=False)
+    affected_users = db.Column(db.Integer, default=0, nullable=False)
+    max_score = db.Column(db.Float, default=0, nullable=False)
+    assigned_to = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    timeline = db.Column(db.JSON, default=list, nullable=False)
+    first_seen = db.Column(db.DateTime, nullable=True)
+    last_seen = db.Column(db.DateTime, nullable=True)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class BlockedDomain(db.Model):
+    """Domains the pipeline treats as known-bad (forces the score to 85+)."""
+    __tablename__ = 'blocked_domains'
+
+    id = db.Column(db.Integer, primary_key=True)
+    domain = db.Column(db.String(255), unique=True, nullable=False)
+    reason = db.Column(db.Text, nullable=True)
+    incident_id = db.Column(db.Integer, db.ForeignKey('incidents.id', ondelete='SET NULL'), nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class MailboxConnection(db.Model):
+    """A user's Gmail / Outlook mailbox connected through OAuth (tokens encrypted)."""
+    __tablename__ = 'mailbox_connections'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    provider = db.Column(db.String(20), nullable=False)  # gmail | outlook
+    email = db.Column(db.String(255), nullable=False)
+    access_token_enc = db.Column(db.Text, nullable=True)
+    refresh_token_enc = db.Column(db.Text, nullable=True)
+    token_expires_at = db.Column(db.DateTime, nullable=True)
+    scopes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), default='active', nullable=False)  # active | paused | error | revoked
+    sync_cursor = db.Column(db.Text, nullable=True)
+    last_sync_at = db.Column(db.DateTime, nullable=True)
+    last_error = db.Column(db.Text, nullable=True)
+    scanned_count = db.Column(db.Integer, default=0, nullable=False)
+    threat_count = db.Column(db.Integer, default=0, nullable=False)
+    auto_label = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

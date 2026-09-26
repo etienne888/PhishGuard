@@ -23,6 +23,9 @@ export interface DashboardMessage {
   threat_type: string
   preview: string
   reported_at: string | null
+  review_label?: string | null
+  /** Where the message came from */
+  origin?: 'web' | 'mailbox' | 'forward' | 'share'
 }
 
 export interface DashboardActivity {

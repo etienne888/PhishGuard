@@ -2,7 +2,16 @@
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from '@/i18n'
 
-const { t } = useI18n()
+const { t, intlLocale } = useI18n()
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(intlLocale.value, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+// Sample reviews store a translation key; visitor comments store their own text
+function commentText(text: string) {
+  return text.startsWith('landing.about.review') ? t(text) : text
+}
 
 // ============================================
 // ANIMATED STATS
@@ -16,12 +25,18 @@ interface Stat {
   suffix?: string
 }
 
+// `label` holds a translation key
 const stats = ref<Stat[]>([
-  { value: '0', label: 'FCFA perdus aux arnaques (2025)', color: 'text-blue-600', target: 1.02, suffix: ' Md' },
-  { value: '0', label: 'précision de détection', color: 'text-cyan-600', target: 99, suffix: '%' },
-  { value: '0', label: 'catégories de menaces', color: 'text-emerald-600', target: 12, suffix: '' },
-  { value: '0', label: 'protection gratuite', color: 'text-purple-600', target: 24, suffix: '/7' }
+  { value: '0', label: 'landing.about.statLosses', color: 'text-blue-600', target: 1.02, suffix: ' Md' },
+  { value: '0', label: 'landing.about.statAccuracy', color: 'text-cyan-600', target: 99, suffix: '%' },
+  { value: '0', label: 'landing.about.statCategories', color: 'text-emerald-600', target: 12, suffix: '' },
+  { value: '0', label: 'landing.about.statFree', color: 'text-purple-600', target: 24, suffix: '/7' }
 ])
+
+// ' Md' (milliards) is shown as ' bn' in English
+function statSuffix(suffix?: string) {
+  return suffix === ' Md' ? t('landing.about.billionSuffix') : suffix
+}
 
 const isVisible = ref(false)
 const sectionRef = ref<HTMLElement | null>(null)
@@ -42,44 +57,44 @@ const comments = ref<Comment[]>([
   {
     id: 1,
     name: 'Jean-Paul N.',
-    text: 'PhishGuard-AI m\'a sauvé d\'une tentative de fraude Mobile Money. Le score de risque m\'a alerté à temps !',
+    text: 'landing.about.review1',
     rating: 5,
-    date: '15 sept. 2026'
+    date: '2026-09-15'
   },
   {
     id: 2,
     name: 'Marie A.',
-    text: 'Très utile pour sensibiliser mes collègues aux risques de phishing. L\'interface est claire et les explications sont accessibles.',
+    text: 'landing.about.review2',
     rating: 4,
-    date: '12 sept. 2026'
+    date: '2026-09-12'
   },
   {
     id: 3,
     name: 'David K.',
-    text: 'Enfin un outil adapté au contexte camerounais ! La détection Mobile Money est très précise.',
+    text: 'landing.about.review3',
     rating: 5,
-    date: '10 sept. 2026'
+    date: '2026-09-10'
   },
   {
     id: 4,
     name: 'Sarah M.',
-    text: 'J\'ai déjà signalé plusieurs tentatives de phishing grâce à PhishGuard-AI. Une vraie protection pour les citoyens.',
+    text: 'landing.about.review4',
     rating: 5,
-    date: '8 sept. 2026'
+    date: '2026-09-08'
   },
   {
     id: 5,
     name: 'Michel T.',
-    text: 'Excellent outil éducatif. Mes étudiants comprennent mieux les risques grâce aux fiches détaillées.',
+    text: 'landing.about.review5',
     rating: 4,
-    date: '5 sept. 2026'
+    date: '2026-09-05'
   },
   {
     id: 6,
     name: 'Claire D.',
-    text: 'Interface simple et efficace. Je l\'utilise régulièrement pour vérifier les messages suspects.',
+    text: 'landing.about.review6',
     rating: 5,
-    date: '3 sept. 2026'
+    date: '2026-09-03'
   }
 ])
 
@@ -169,15 +184,15 @@ function submitComment() {
   formError.value = ''
   
   if (!formData.value.name.trim()) {
-    formError.value = 'Veuillez entrer votre nom'
+    formError.value = t('landing.about.errorName')
     return
   }
   if (!formData.value.text.trim()) {
-    formError.value = 'Veuillez écrire votre commentaire'
+    formError.value = t('landing.about.errorText')
     return
   }
   if (formData.value.text.trim().length < 10) {
-    formError.value = 'Votre commentaire doit faire au moins 10 caractères'
+    formError.value = t('landing.about.errorShort')
     return
   }
 
@@ -189,7 +204,7 @@ function submitComment() {
       name: formData.value.name,
       text: formData.value.text,
       rating: formData.value.rating,
-      date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+      date: new Date().toISOString().slice(0, 10)
     }
     
     comments.value.unshift(newComment)
@@ -287,27 +302,26 @@ function animateNumbers() {
         <!-- LEFT COLUMN -->
         <div>
           <span class="inline-block text-xs font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full mb-4 border border-blue-200/50">
-            À propos
+            {{ t('landing.about.title') }}
           </span>
           
           <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 font-display leading-tight">
-            Conçu au Cameroun,<br />
-            <span class="gradient-text">par des talents camerounais</span>
+            {{ t('landing.about.headline') }}<br />
+            <span class="gradient-text">{{ t('landing.about.headlineAccent') }}</span>
           </h2>
           
           <p class="text-slate-600 mt-4 leading-relaxed">
-            PhishGuard-AI est un projet de fin d'études en cybersécurité, pensé pour protéger les citoyens contre le
-            phishing, la fraude Mobile Money et l'ingénierie sociale. 
-            <span class="font-medium text-slate-700">100% localisé et gratuit.</span>
+            {{ t('landing.about.description') }}
+            <span class="font-medium text-slate-700">{{ t('landing.about.free') }}</span>
           </p>
 
           <!-- Animated Stats -->
           <div class="mt-6 grid grid-cols-2 gap-4">
             <div v-for="stat in stats" :key="stat.label" class="bg-slate-50 rounded-xl p-4 border border-slate-100 card-hover">
               <span class="text-2xl font-bold font-display" :class="stat.color">
-                {{ stat.value }}{{ stat.suffix }}
+                {{ stat.value }}{{ statSuffix(stat.suffix) }}
               </span>
-              <p class="text-xs text-slate-500 mt-0.5">{{ stat.label }}</p>
+              <p class="text-xs text-slate-500 mt-0.5">{{ t(stat.label) }}</p>
             </div>
           </div>
 
@@ -322,9 +336,9 @@ function animateNumbers() {
           <!-- Carousel Header -->
           <div class="flex items-center justify-between mb-6">
             <div>
-              <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Avis</span>
+              <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">{{ t('landing.about.reviews') }}</span>
               <h3 class="text-xl font-bold text-slate-800 font-display">
-                Ce que les utilisateurs disent
+                {{ t('landing.about.reviewsTitle') }}
                 <span class="text-sm font-normal text-slate-400 ml-2">({{ comments.length }})</span>
               </h3>
             </div>
@@ -355,12 +369,12 @@ function animateNumbers() {
 
                 <!-- Comment Text -->
                 <p class="text-sm text-slate-600 mt-2 leading-relaxed flex-1 line-clamp-4">
-                  "{{ comment.text }}"
+                  "{{ commentText(comment.text) }}"
                 </p>
 
                 <!-- Date -->
                 <span class="text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-100">
-                  {{ comment.date }}
+                  {{ formatDate(comment.date) }}
                 </span>
               </div>
             </div>
@@ -399,7 +413,7 @@ function animateNumbers() {
             <div class="flex justify-center mt-2">
               <span class="text-[10px] text-slate-400 flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full" :class="isAutoPlaying ? 'bg-emerald-500' : 'bg-slate-300'"></span>
-                {{ isAutoPlaying ? 'Défilement automatique' : 'Pause' }}
+                {{ isAutoPlaying ? t('landing.about.autoplay') : t('landing.about.paused') }}
               </span>
             </div>
           </div>
@@ -412,17 +426,17 @@ function animateNumbers() {
       <div class="mt-16 pt-10 border-t border-slate-200">
         <div class="max-w-2xl mx-auto">
           <div class="text-center mb-8">
-            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Partagez votre avis</span>
+            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">{{ t('landing.about.share') }}</span>
             <h3 class="text-2xl font-bold text-slate-800 font-display mt-1">{{ t('landing.about.comment') }}</h3>
-            <p class="text-sm text-slate-500 mt-1">Votre retour nous aide à améliorer PhishGuard-AI</p>
+            <p class="text-sm text-slate-500 mt-1">{{ t('landing.about.shareHint') }}</p>
           </div>
 
           <!-- Success Message -->
           <div v-if="formSuccess" class="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 flex items-center gap-3">
             <i class="fas fa-check-circle text-emerald-500 text-lg"></i>
             <div>
-              <span class="font-medium">Merci pour votre avis !</span>
-              <p class="text-xs text-emerald-600 mt-0.5">Votre commentaire a été publié avec succès.</p>
+              <span class="font-medium">{{ t('landing.about.thanks') }}</span>
+              <p class="text-xs text-emerald-600 mt-0.5">{{ t('landing.about.published') }}</p>
             </div>
           </div>
 
@@ -430,12 +444,12 @@ function animateNumbers() {
           <form @submit.prevent="submitComment" class="bg-slate-50 rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-sm">
             <div>
               <label class="text-xs font-medium text-slate-600 block mb-1">
-                Nom <span class="text-red-500">*</span>
+                {{ t('landing.about.name') }} <span class="text-red-500">*</span>
               </label>
               <input
                 v-model="formData.name"
                 type="text"
-                placeholder="Votre nom"
+                :placeholder="t('landing.about.namePlaceholder')"
                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition bg-white"
                 required
               />
@@ -443,12 +457,12 @@ function animateNumbers() {
 
             <div class="mt-4">
               <label class="text-xs font-medium text-slate-600 block mb-1">
-                Commentaire <span class="text-red-500">*</span>
+                {{ t('landing.about.commentLabel') }} <span class="text-red-500">*</span>
               </label>
               <textarea
                 v-model="formData.text"
                 rows="3"
-                placeholder="Partagez votre expérience avec PhishGuard-AI..."
+                :placeholder="t('landing.about.commentPlaceholder')"
                 class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition resize-none bg-white"
                 required
               ></textarea>
@@ -456,7 +470,7 @@ function animateNumbers() {
 
             <div class="mt-4 flex items-center justify-between flex-wrap gap-3">
               <div class="flex items-center gap-2">
-                <span class="text-sm text-slate-600">Note :</span>
+                <span class="text-sm text-slate-600">{{ t('landing.about.rating') }}</span>
                 <div class="flex gap-0.5">
                   <button
                     v-for="star in 5"
@@ -479,7 +493,7 @@ function animateNumbers() {
               >
                 <i v-if="isSubmitting" class="fas fa-spinner fa-spin"></i>
                 <i v-else class="fas fa-paper-plane"></i>
-                {{ isSubmitting ? 'Envoi...' : 'Publier' }}
+                {{ isSubmitting ? t('landing.about.sending') : t('landing.about.publish') }}
               </button>
             </div>
 

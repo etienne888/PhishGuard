@@ -1,33 +1,15 @@
 <template>
   <div
-    class="bg-white rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden p-5 sm:p-7"
+    class="auth-card bg-white rounded-3xl max-w-md w-full relative overflow-y-auto max-h-[92vh] px-6 py-7 sm:px-9 sm:py-8"
   >
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-5">
-      <div>
-        <div class="flex items-center gap-3 mb-1">
-          <div
-            class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25"
-          >
-            <i class="fas fa-shield-halved text-white text-sm"></i>
-          </div>
-          <span class="text-xl font-extrabold tracking-tight text-slate-800">
-            Phish<span class="text-blue-600">Guard</span
-            ><span class="text-cyan-500">-AI</span>
-          </span>
-        </div>
-        <h3 class="text-2xl font-bold text-slate-800 font-display">
-          {{ stepTitle }}
-        </h3>
-        <p class="text-sm text-slate-500">{{ stepSubtitle }}</p>
-      </div>
-      <button
-        class="text-slate-400 hover:text-slate-600 transition p-1 rounded-lg hover:bg-slate-100"
-        @click="$emit('close')"
-      >
-        <i class="fas fa-xmark text-xl"></i>
-      </button>
-    </div>
+    <button
+      class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center"
+      @click="$emit('close')"
+    >
+      <i class="fas fa-xmark"></i>
+    </button>
+
+    <AuthHeader :title="stepTitle" :subtitle="stepSubtitle" />
 
     <!-- Step progress tracker -->
     <div class="flex items-center gap-2 mb-6">
@@ -37,9 +19,9 @@
             class="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold transition-colors"
             :class="
               stepIndex > index
-                ? 'bg-emerald-500 text-white'
+                ? 'bg-emerald-400 text-white'
                 : stepIndex === index
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                  ? 'bg-blue-500 text-white ring-4 ring-blue-100'
                   : 'bg-slate-100 text-slate-400'
             "
           >
@@ -49,7 +31,7 @@
           <div
             v-if="index < steps.length - 1"
             class="h-0.5 flex-1 rounded transition-colors"
-            :class="stepIndex > index ? 'bg-emerald-500' : 'bg-slate-100'"
+            :class="stepIndex > index ? 'bg-emerald-300' : 'bg-slate-100'"
           ></div>
         </div>
       </template>
@@ -60,31 +42,54 @@
     <!-- ============================================================ -->
     <div v-if="step === 'account'" class="space-y-4">
       <form @submit.prevent="submitRegister" class="space-y-4">
+        <!-- Bot trap: invisible to people, bots fill every field (see backend registration_risk.py) -->
+        <input v-model="form.website" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+               class="absolute -left-[9999px] h-0 w-0 opacity-0" />
         <div>
-          <label class="text-xs font-medium text-slate-600 block mb-1">
+          <label class="text-xs font-medium text-slate-500 block mb-1.5 ml-1">
+            {{ t('auth.register.fullName') }} <span class="text-red-500">*</span>
+          </label>
+          <input v-model="form.full_name" type="text" autocomplete="name" maxlength="120" required
+                 :placeholder="t('auth.register.fullNamePlaceholder')" class="auth-input"
+                 :class="errors.full_name ? 'auth-input--error' : ''" @blur="validateField('full_name')" />
+          <p v-if="errors.full_name" class="text-xs text-rose-500 mt-1 ml-1">{{ errors.full_name }}</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-medium text-slate-500 block mb-1.5 ml-1">{{ t('auth.register.region') }}</label>
+            <select v-model="form.region" class="auth-input">
+              <option value="">—</option>
+              <option v-for="r in REGIONS" :key="r" :value="r">{{ t(`region.${r}`) }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500 block mb-1.5 ml-1">{{ t('auth.register.city') }}</label>
+            <input v-model="form.city" type="text" autocomplete="address-level2" maxlength="120" placeholder="Yaoundé" class="auth-input" />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-500 block mb-1.5 ml-1">
             {{ t('auth.email') }} <span class="text-red-500">*</span>
           </label>
           <input
             v-model="form.email"
             type="email"
             :placeholder="t('auth.emailPlaceholder')"
-            class="w-full px-3 py-2.5 border rounded-lg text-sm transition"
+            class="auth-input"
             :class="
-              errors.email
-                ? 'border-red-400'
-                : 'border-slate-200 focus:ring-blue-500/30 focus:border-blue-500'
+              errors.email ? 'auth-input--error' : ''
             "
             @blur="validateField('email')"
             required
           />
-          <p v-if="errors.email" class="text-xs text-red-500 mt-1">
+          <p v-if="errors.email" class="text-xs text-rose-500 mt-1 ml-1">
             {{ errors.email }}
           </p>
         </div>
 
         <div>
-          <label class="text-xs font-medium text-slate-600 block mb-1">
-            {{ t('auth.phone') }} <span class="text-slate-400">(optionnel)</span>
+          <label class="text-xs font-medium text-slate-500 block mb-1.5 ml-1">
+            {{ t('auth.phone') }} <span class="text-slate-400">({{ t('common.optional') }})</span>
           </label>
           <PhoneInput
             v-model="form.phone"
@@ -94,7 +99,7 @@
         </div>
 
         <div>
-          <label class="text-xs font-medium text-slate-600 block mb-1">
+          <label class="text-xs font-medium text-slate-500 block mb-1.5 ml-1">
             {{ t('auth.password') }} <span class="text-red-500">*</span>
           </label>
           <div class="relative">
@@ -102,11 +107,9 @@
               v-model="form.password"
               :type="showPassword ? 'text' : 'password'"
               :placeholder="t('auth.passwordPlaceholder')"
-              class="w-full px-3 py-2.5 border rounded-lg text-sm transition pr-10"
+              class="auth-input pr-11"
               :class="
-                errors.password
-                  ? 'border-red-400'
-                  : 'border-slate-200 focus:ring-blue-500/30 focus:border-blue-500'
+                errors.password ? 'auth-input--error' : ''
               "
               @blur="validateField('password')"
               required
@@ -121,7 +124,7 @@
           </div>
 
           <!-- Password Requirements -->
-          <div class="mt-2 space-y-1">
+          <div class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 ml-1">
             <p
               v-for="req in passwordRequirements"
               :key="req.id"
@@ -129,7 +132,7 @@
               :class="req.passed ? 'text-emerald-600' : 'text-slate-400'"
             >
               <i
-                :class="req.passed ? 'fas fa-check-circle' : 'fas fa-circle'"
+                :class="req.passed ? 'fas fa-check-circle' : 'far fa-circle'"
               ></i>
               {{ req.label }}
             </p>
@@ -137,23 +140,21 @@
         </div>
 
         <div>
-          <label class="text-xs font-medium text-slate-600 block mb-1">
+          <label class="text-xs font-medium text-slate-500 block mb-1.5 ml-1">
             {{ t('auth.confirmPassword') }} <span class="text-red-500">*</span>
           </label>
           <input
             v-model="form.confirmPassword"
             type="password"
             :placeholder="t('auth.passwordPlaceholder')"
-            class="w-full px-3 py-2.5 border rounded-lg text-sm transition"
+            class="auth-input"
             :class="
-              errors.confirmPassword
-                ? 'border-red-400'
-                : 'border-slate-200 focus:ring-blue-500/30 focus:border-blue-500'
+              errors.confirmPassword ? 'auth-input--error' : ''
             "
             @blur="validateField('confirmPassword')"
             required
           />
-          <p v-if="errors.confirmPassword" class="text-xs text-red-500 mt-1">
+          <p v-if="errors.confirmPassword" class="text-xs text-rose-500 mt-1 ml-1">
             {{ errors.confirmPassword }}
           </p>
         </div>
@@ -165,9 +166,9 @@
             class="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
           />
           <label class="text-xs text-slate-600">
-            J'accepte les
+            {{ t('auth.register.accept') }}
             <button type="button" class="text-blue-600 hover:underline">
-              Conditions d'utilisation
+              {{ t('auth.register.terms') }}
             </button>
           </label>
         </div>
@@ -175,29 +176,29 @@
         <button
           type="submit"
           :disabled="!form.agreeTerms || isSubmitting"
-          class="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition disabled:opacity-60 flex items-center justify-center gap-2"
+          class="auth-btn"
         >
           <i v-if="isSubmitting" class="fas fa-spinner fa-spin"></i>
           {{ isSubmitting ? t('auth.register.creating') : t('auth.register.submit') }}
         </button>
         <p
           v-if="authStore.error"
-          class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+          class="text-sm text-rose-600 bg-rose-50 rounded-xl px-3 py-2.5"
         >
           {{ authStore.error }}
         </p>
       </form>
 
       <div class="relative flex items-center py-1">
-        <div class="flex-1 border-t border-slate-200"></div>
-        <span class="px-4 text-xs text-slate-400 font-medium">OU</span>
-        <div class="flex-1 border-t border-slate-200"></div>
+        <div class="flex-1 border-t border-slate-100"></div>
+        <span class="px-4 text-[11px] tracking-widest text-slate-400">{{ t('common.or') }}</span>
+        <div class="flex-1 border-t border-slate-100"></div>
       </div>
 
       <GoogleLoginButton @success="handleGoogleSignup" />
 
       <p class="text-center text-sm text-slate-500">
-        Déjà un compte ?
+        {{ t('auth.register.haveAccount') }}
         <button
           type="button"
           class="text-blue-600 font-medium hover:underline"
@@ -209,61 +210,14 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- STEP 2: EMAIL VERIFICATION (link or code)                     -->
+    <!-- STEP 2: EMAIL VERIFICATION (6-digit OTP code)                  -->
     <!-- ============================================================ -->
     <div v-else-if="step === 'sent'" class="space-y-5">
-      <div v-if="!useCodeMethod" class="text-center space-y-3">
-        <div
-          class="w-16 h-16 mx-auto rounded-full bg-blue-50 flex items-center justify-center text-2xl text-blue-600"
-        >
-          <i class="fas fa-envelope-circle-check"></i>
-        </div>
-        <h4 class="text-lg font-bold text-slate-800">Confirmez votre email</h4>
-        <p class="text-sm text-slate-500">
-          Un lien de vérification a été envoyé à
-          <span class="font-semibold text-slate-700">{{ form.email }}</span
-          >. Ouvrez votre boîte mail et cliquez sur le lien pour activer votre
-          compte.
-        </p>
-
-        <p
-          v-if="feedback"
-          class="text-xs rounded-lg px-3 py-2"
-          :class="
-            feedbackIsError
-              ? 'text-red-600 bg-red-50 border border-red-200'
-              : 'text-emerald-600 bg-emerald-50 border border-emerald-200'
-          "
-        >
-          {{ feedback }}
-        </p>
-
-        <button
-          type="button"
-          :disabled="isResending"
-          class="w-full py-2.5 rounded-xl border border-blue-200 text-blue-600 text-sm font-semibold hover:bg-blue-50 transition disabled:opacity-50"
-          @click="resendLink"
-        >
-          <i v-if="isResending" class="fas fa-spinner fa-spin mr-1.5"></i>
-          Renvoyer le lien
-        </button>
-
-        <button
-          type="button"
-          class="w-full py-2.5 rounded-xl bg-slate-50 text-slate-600 text-sm font-medium hover:bg-slate-100 transition"
-          @click="switchToCode"
-        >
-          Vérifier avec un code à la place
-        </button>
-      </div>
-
-      <!-- Fallback: inline OTP code entry for the same email -->
       <OtpVerificationForm
-        v-else
         method="email"
         :identifier="form.email"
         @verified="onEmailVerified"
-        @back="useCodeMethod = false"
+        @back="step = 'account'"
       />
     </div>
 
@@ -272,35 +226,35 @@
     <!-- ============================================================ -->
     <div v-else class="text-center space-y-4">
       <div
-        class="w-16 h-16 mx-auto rounded-full bg-emerald-50 flex items-center justify-center text-2xl text-emerald-600"
+        class="w-16 h-16 mx-auto rounded-full bg-emerald-50 ring-8 ring-emerald-50/50 flex items-center justify-center text-2xl text-emerald-600"
       >
         <i class="fas fa-circle-check"></i>
       </div>
-      <h4 class="text-lg font-bold text-slate-800">Email vérifié !</h4>
+      <h4 class="text-lg font-bold text-slate-800">{{ t('auth.register.verifiedTitle') }}</h4>
       <p class="text-sm text-slate-500">
-        Votre compte PhishGuard-AI est prêt. Connectez-vous pour commencer à
-        analyser vos messages suspects.
+        {{ t('auth.register.verifiedText') }}
       </p>
       <button
         type="button"
-        class="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition"
+        class="auth-btn"
         @click="finish"
       >
-        Se connecter
+        {{ t('auth.register.login') }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import "./auth.css";
 import { ref, reactive, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { isValidEmail, isStrongEnoughPassword } from "@/utils";
-import { api } from "@/services/api";
 import GoogleLoginButton from "./GoogleLoginButton.vue";
 import PhoneInput from "./PhoneInput.vue";
 import OtpVerificationForm from "./OtpVerificationForm.vue";
+import AuthHeader from "./AuthHeader.vue";
 import { useI18n } from '@/i18n';
 
 const emit = defineEmits(["close", "switch-to-login"]);
@@ -311,28 +265,32 @@ const { t } = useI18n();
 
 type Step = "account" | "sent" | "done";
 
-const steps: { id: Step; label: string }[] = [
-  { id: "account", label: "Compte" },
-  { id: "sent", label: "Vérification" },
-  { id: "done", label: "Terminé" },
-];
+const steps: { id: Step }[] = [{ id: "account" }, { id: "sent" }, { id: "done" }];
 
 const step = ref<Step>("account");
 const stepIndex = computed(() => steps.findIndex((s) => s.id === step.value));
 
 const stepTitle = computed(() => {
-  if (step.value === "account") return "Créer un compte";
-  if (step.value === "sent") return "Vérifiez votre email";
-  return "Bienvenue à bord";
+  if (step.value === "account") return t('auth.register.title');
+  if (step.value === "sent") return t('auth.register.checkEmail');
+  return t('auth.register.welcome');
 });
 
 const stepSubtitle = computed(() => {
-  if (step.value === "account") return "Rejoignez PhishGuard-AI et restez protégé";
-  if (step.value === "sent") return "Une dernière étape avant de commencer";
-  return "Votre compte est activé";
+  if (step.value === "account") return t('auth.register.subtitle');
+  if (step.value === "sent") return t('auth.register.enterCode', { email: form.email });
+  return t('auth.register.activated');
 });
 
+const REGIONS = ["adamaoua", "centre", "est", "extreme-nord", "littoral", "nord", "nord-ouest", "ouest", "sud", "sud-ouest", "diaspora"];
+// Bots submit instantly: the backend compares this with the submission time
+const formStartedAt = Date.now();
+
 const form = reactive({
+  full_name: "",
+  region: "",
+  city: "",
+  website: "",
   email: "",
   phone: "",
   password: "",
@@ -341,6 +299,7 @@ const form = reactive({
 });
 
 const errors = reactive({
+  full_name: "",
   email: "",
   phone: "",
   password: "",
@@ -349,63 +308,64 @@ const errors = reactive({
 
 const showPassword = ref(false);
 const isSubmitting = ref(false);
-const useCodeMethod = ref(false);
-const isResending = ref(false);
-const feedback = ref("");
-const feedbackIsError = ref(false);
 
 const passwordRequirements = computed(() => [
   {
     id: "length",
-    label: "Au moins 8 caractères",
-    passed: form.password.length >= 8,
+    label: t('auth.password.length', { n: 12 }),
+    passed: form.password.length >= 12,
   },
   {
     id: "uppercase",
-    label: "Au moins une majuscule",
+    label: t('auth.password.upper'),
     passed: /[A-Z]/.test(form.password),
   },
   {
     id: "lowercase",
-    label: "Au moins une minuscule",
+    label: t('auth.password.lower'),
     passed: /[a-z]/.test(form.password),
   },
   {
     id: "number",
-    label: "Au moins un chiffre",
+    label: t('auth.password.number'),
     passed: /[0-9]/.test(form.password),
   },
 ]);
 
 function validateField(field: keyof typeof errors) {
+  if (field === "full_name") {
+    errors.full_name = form.full_name.trim().length >= 2 ? "" : t('auth.errors.fullName');
+  }
   if (field === "email") {
-    errors.email = isValidEmail(form.email) ? "" : "Adresse email invalide.";
+    errors.email = isValidEmail(form.email) ? "" : t('auth.errors.invalidEmail');
   }
   if (field === "phone") {
     errors.phone =
       !form.phone || form.phone.length >= 8
         ? ""
-        : "Numéro de téléphone invalide.";
+        : t('auth.errors.invalidPhone');
   }
   if (field === "password") {
     errors.password = isStrongEnoughPassword(form.password)
       ? ""
-      : "Le mot de passe ne respecte pas les critères.";
+      : t('auth.errors.weakPassword');
   }
   if (field === "confirmPassword") {
     errors.confirmPassword =
       form.confirmPassword === form.password
         ? ""
-        : "Les mots de passe ne correspondent pas.";
+        : t('auth.errors.passwordMismatch');
   }
 }
 
 function validateForm(): boolean {
+  validateField("full_name");
   validateField("email");
   validateField("phone");
   validateField("password");
   validateField("confirmPassword");
   return (
+    !errors.full_name &&
     !errors.email &&
     !errors.phone &&
     !errors.password &&
@@ -422,36 +382,16 @@ async function submitRegister() {
     password: form.password,
     confirmPassword: form.confirmPassword,
     phone: form.phone || undefined,
+    full_name: form.full_name.trim(),
+    region: form.region || undefined,
+    city: form.city.trim() || undefined,
+    acceptTerms: form.agreeTerms,
+    website: form.website,
+    form_started_at: formStartedAt,
   });
   isSubmitting.value = false;
   if (registered && !authStore.error) {
     step.value = "sent";
-  }
-}
-
-async function resendLink() {
-  isResending.value = true;
-  feedback.value = "";
-  try {
-    await api.post("/verification/send-email-link", { email: form.email });
-    feedback.value = "Un nouveau lien vient d'être envoyé.";
-    feedbackIsError.value = false;
-  } catch {
-    feedback.value = "Impossible de renvoyer le lien pour le moment.";
-    feedbackIsError.value = true;
-  } finally {
-    isResending.value = false;
-  }
-}
-
-async function switchToCode() {
-  feedback.value = "";
-  try {
-    await api.post("/verification/send-email-code", { email: form.email });
-    useCodeMethod.value = true;
-  } catch {
-    feedback.value = "Impossible d'envoyer un code pour le moment.";
-    feedbackIsError.value = true;
   }
 }
 
@@ -470,3 +410,4 @@ function handleGoogleSignup() {
   void router.push({ name: "dashboard" });
 }
 </script>
+

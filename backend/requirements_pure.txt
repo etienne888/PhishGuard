@@ -24,3 +24,6 @@ tldextract==5.1.2
 python-dateutil==2.8.2
 gunicorn==21.2.0
 joblib==1.3.1
+psutil>=5.9
+# Optional: Fernet encryption of mailbox tokens (a standard-library fallback is used otherwise)
+# cryptography>=42   (uncomment when available on your package index)

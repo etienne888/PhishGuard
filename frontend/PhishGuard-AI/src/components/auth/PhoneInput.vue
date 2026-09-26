@@ -43,7 +43,7 @@
           @click="selectCountry(country)"
         >
           <span class="text-base leading-none">{{ country.flag }}</span>
-          <span class="flex-1 text-slate-700">{{ country.name }}</span>
+          <span class="flex-1 text-slate-700">{{ countryName(country) }}</span>
           <span class="text-xs text-slate-400">{{ country.dialCode }}</span>
         </button>
       </div>
@@ -54,6 +54,16 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { intlLocale } from "@/i18n";
+
+// Country names in the interface language (falls back to the French name below)
+function countryName(country: { iso2: string; name: string }) {
+  try {
+    return new Intl.DisplayNames([intlLocale.value], { type: "region" }).of(country.iso2) ?? country.name;
+  } catch {
+    return country.name;
+  }
+}
 
 const props = defineProps<{
   modelValue: string;

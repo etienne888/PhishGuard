@@ -1,6 +1,7 @@
   <script setup lang="ts">
   import { computed, ref } from 'vue'
   import type { AdminOverview } from '@/services/admin.service'
+  import { useI18n } from '@/i18n'
 
   /**
    * 14-day stacked bars of analyses by verdict. Status colours are validated
@@ -9,10 +10,13 @@
    */
   const props = defineProps<{ series: AdminOverview['series'] }>()
 
+  const { t, intlLocale } = useI18n()
+
+  // `label` is a translation key
   const SERIES = [
-    { key: 'phishing', label: 'Dangereux', icon: '🔴' },
-    { key: 'suspicious', label: 'Suspects', icon: '🟠' },
-    { key: 'safe', label: 'Sans danger', icon: '🟢' },
+    { key: 'phishing', label: 'status.phishing', icon: '🔴' },
+    { key: 'suspicious', label: 'dashboard.suspiciousPlural', icon: '🟠' },
+    { key: 'safe', label: 'status.safe', icon: '🟢' },
   ] as const
 
   const showTable = ref(false)
@@ -20,7 +24,7 @@
 
   const max = computed(() => Math.max(1, ...props.series.map((d) => d.phishing + d.suspicious + d.safe)))
   const totals = computed(() => Object.fromEntries(SERIES.map((s) => [s.key, props.series.reduce((n, d) => n + d[s.key], 0)])))
-  const dayLabel = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  const dayLabel = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString(intlLocale.value, { day: 'numeric', month: 'short' })
 
   function segments(day: AdminOverview['series'][number]) {
     // Stack bottom-up: safe, suspicious, phishing (the headline sits on top)
@@ -34,15 +38,15 @@
     <div>
       <div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
         <span v-for="s in SERIES" :key="s.key" class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
-          <span class="swatch" :class="`c-${s.key}`"></span>{{ s.label }} <b class="tabular-nums">{{ totals[s.key] }}</b>
+          <span class="swatch" :class="`c-${s.key}`"></span>{{ t(s.label) }} <b class="tabular-nums">{{ totals[s.key] }}</b>
         </span>
         <button class="ml-auto text-xs text-blue-600 hover:underline dark:text-blue-400" @click="showTable = !showTable">
-          {{ showTable ? 'Voir le graphique' : 'Voir en tableau' }}
+          {{ showTable ? t('chart.showChart') : t('chart.showTable') }}
         </button>
       </div>
 
       <table v-if="showTable" class="w-full text-xs">
-        <thead class="text-left text-slate-500"><tr><th class="py-1">Jour</th><th v-for="s in SERIES" :key="s.key" class="text-right">{{ s.label }}</th></tr></thead>
+        <thead class="text-left text-slate-500"><tr><th class="py-1">{{ t('chart.day') }}</th><th v-for="s in SERIES" :key="s.key" class="text-right">{{ t(s.label) }}</th></tr></thead>
         <tbody class="tabular-nums text-slate-700 dark:text-slate-300">
           <tr v-for="d in series" :key="d.date" class="border-t border-slate-100 dark:border-slate-800">
             <td class="py-1">{{ dayLabel(d.date) }}</td>
@@ -53,7 +57,7 @@
 
       <div v-else class="relative">
         <div class="flex h-44 items-end gap-1.5 border-b border-slate-200 dark:border-slate-700" role="img"
-            :aria-label="`Analyses des 14 derniers jours : ${totals.phishing} dangereuses, ${totals.suspicious} suspectes, ${totals.safe} sans danger`">
+            :aria-label="t('chart.aria', { phishing: totals.phishing ?? 0, suspicious: totals.suspicious ?? 0, safe: totals.safe ?? 0 })">
           <div v-for="(d, i) in series" :key="d.date" class="relative flex h-full flex-1 cursor-default flex-col justify-end"
               @mouseenter="hovered = i" @mouseleave="hovered = null">
             <div class="flex flex-col-reverse gap-[2px]">
@@ -61,7 +65,7 @@
             </div>
             <div v-if="hovered === i" class="tooltip">
               <p class="font-semibold">{{ dayLabel(d.date) }}</p>
-              <p v-for="s in SERIES" :key="s.key">{{ s.icon }} {{ s.label }} : <b>{{ d[s.key] }}</b></p>
+              <p v-for="s in SERIES" :key="s.key">{{ s.icon }} {{ t(s.label) }} : <b>{{ d[s.key] }}</b></p>
             </div>
           </div>
         </div>
