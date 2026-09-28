@@ -66,6 +66,7 @@ def origin_map():
     since = datetime.utcnow() - timedelta(days=days)
     places: dict[tuple, dict] = {}
     totals = Counter()
+    hidden_items = []  # no location, but the hop-by-hop path can still be investigated
     rows = (Analysis.query.filter(Analysis.created_at >= since, Analysis.source.in_(('mailbox', 'forward', 'web')))
             .order_by(Analysis.created_at.desc()).limit(3000).all())
     for a in rows:
@@ -76,6 +77,8 @@ def origin_map():
         if origin.get('precision') == 'hidden':
             totals['hidden'] += 1
             totals[f"hidden:{origin.get('provider') or '?'}"] += 1
+            if len(hidden_items) < 50 and (scope == 'all' or a.verdict != 'legitimate'):
+                hidden_items.append({**_summary(a), 'provider': origin.get('provider'), 'hop_count': origin.get('hop_count')})
             continue
         geo = origin.get('geo') or {}
         if geo.get('lat') is None or (scope == 'threats' and a.verdict == 'legitimate'):
@@ -113,7 +116,7 @@ def origin_map():
     points.sort(key=lambda p: (-RANK.get(p['verdict'], 0), -p['count']))
     hidden_by = [{'provider': k.split(':', 1)[1], 'count': n} for k, n in totals.items() if k.startswith('hidden:')]
     return ok({'days': days, 'scope': scope, 'points': points[:500], 'traced': totals['traced'],
-               'hidden': totals['hidden'], 'hidden_by': sorted(hidden_by, key=lambda h: -h['count']),
+               'hidden': totals['hidden'], 'hidden_items': hidden_items, 'hidden_by': sorted(hidden_by, key=lambda h: -h['count']),
                'countries': [{'country': c, 'count': n} for c, n in
                              Counter(p['country'] for p in points for _ in range(p['count'])).most_common(8)],
                'generated_at': datetime.utcnow().isoformat()})

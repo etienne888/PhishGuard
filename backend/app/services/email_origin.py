@@ -69,6 +69,11 @@ def is_public(ip: str | None) -> bool:
         return False
 
 
+# Webmail services strip the author's own IP: the first public hop is then the provider's server.
+# The others (Amazon SES, SendGrid, Mailchimp) are sending platforms: their server IS the real origin.
+WEBMAIL = {'Gmail', 'Outlook / Microsoft 365', 'Yahoo', 'Zoho', 'Proton'}
+
+
 def _provider(host: str | None) -> str | None:
     host = (host or '').lower().rstrip('.')
     for name, domains in PROVIDERS:
@@ -236,51 +241,68 @@ def trace(raw: bytes, *, claimed_brand: str | None = None, instance_path: str | 
             current = None
         hop['delay_s'] = round((current - previous).total_seconds()) if current and previous else None
         previous = current or previous
-        hop['provider'] = _provider(hop.get('by_host')) or _provider(hop.get('from_host'))
 
-    providers = [h['provider'] for h in hops if h.get('provider')]
-    provider = providers[0] if providers else None
-
-    # The sender's IP: an explicit header when a webmail adds it, else the first public "from" IP
+    # A webmail can name the author's IP in its own header
     explicit = None
     for name in ('X-Originating-IP', 'X-Sender-IP', 'X-Client-IP', 'X-Source-IP'):
         value = str(headers.get(name) or '').strip(' []')
         if is_public(value):
-            explicit = (value, name)
+            explicit = {'ip': value, 'header': name}
             break
-    sender_ip, how = (explicit[0], f'header {explicit[1]}') if explicit else (None, None)
-    if not sender_ip:
-        for hop in hops:
-            if is_public(hop.get('from_ip')):
-                sender_ip, how = hop['from_ip'], 'first public hop'
-                hop['is_origin'] = True
-                break
 
     report: dict = {
-        'hops': hops, 'hop_count': len(hops), 'provider': provider, 'sender_ip': sender_ip, 'found_by': how,
+        'hops': hops, 'hop_count': len(hops), 'explicit': explicit,
         'device': _device(headers),
         'message_id_domain': (re.search(r'@([\w.-]+)>?\s*$', str(headers.get('Message-ID') or '')) or [None, None])[1],
         'date_header': str(headers.get('Date') or '') or None,
         'return_path': str(headers.get('Return-Path') or '').strip('<>') or None,
         'authentication': str(headers.get('Authentication-Results') or '')[:600] or None,
-        'geo': None, 'blacklists': [], 'route': [], 'flags': [],
     }
     tz_match = re.search(r'([+-]\d{4})\s*(\(|$)', report['date_header'] or '')
     report['sender_utc_offset'] = tz_match.group(1) if tz_match else None
+    return locate(report, claimed_brand=claimed_brand, instance_path=instance_path, network=network)
 
-    # The origin is the provider's own server (webmail): the real sender is hidden
-    origin_is_provider = sender_ip and any(h.get('is_origin') and h.get('provider') for h in hops)
-    if not sender_ip or (origin_is_provider and not explicit):
+
+def locate(report: dict, *, claimed_brand: str | None = None, instance_path: str | None = None,
+           network: bool = True) -> dict:
+    """Find the sender among the parsed hops and enrich it. Also used to re-trace a stored report."""
+    hops = report.get('hops') or []
+    for hop in hops:
+        hop.pop('is_origin', None)
+        # Who SENT this hop decides whether the origin is a provider's server; the receiving side
+        # (e.g. mx.google.com for every Gmail inbox) says nothing about the sender.
+        hop['provider'] = _provider(hop.get('from_host'))
+        hop['received_by'] = _provider(hop.get('by_host'))
+    for key in ('geo', 'provider_server', 'precision', 'accuracy_km', 'network_type'):
+        report.pop(key, None)
+    report.update({'blacklists': [], 'route': [], 'flags': []})
+
+    explicit = report.get('explicit')
+    sender_ip, how, origin_hop = (explicit['ip'], f"header {explicit['header']}", None) if explicit else (None, None, None)
+    if not sender_ip:
+        for hop in hops:
+            if is_public(hop.get('from_ip')):
+                sender_ip, how, origin_hop = hop['from_ip'], 'first public hop', hop
+                hop['is_origin'] = True
+                break
+    report['sender_ip'], report['found_by'] = sender_ip, how
+    # The mailbox provider that received the message (shown for context)
+    report['mailbox_provider'] = next((h['received_by'] for h in reversed(hops) if h.get('received_by')), None)
+    report['provider'] = (origin_hop or {}).get('provider')
+
+    # Sent from a webmail account: the IP we see belongs to the webmail, the author is hidden
+    if not sender_ip or (origin_hop and origin_hop.get('provider') in WEBMAIL):
         report['precision'] = 'hidden'
-        report['flags'].append('hidden_by_provider' if provider else 'no_public_ip')
+        report['flags'].append('hidden_by_provider' if report['provider'] else 'no_public_ip')
+        if sender_ip:
+            # Never place a provider's server on a map or judge it as if it were the sender
+            report['provider_server'] = {'ip': sender_ip, 'host': origin_hop.get('from_host') if origin_hop else None}
+            report['sender_ip'] = None
+        report['geo'], report['accuracy_km'], report['network_type'] = None, None, None
+        report['claimed_brand'] = claimed_brand
+        return report
 
-    hidden = report.get('precision') == 'hidden'
-    if hidden and sender_ip:
-        # The IP we found belongs to the provider (e.g. Google), not to the sender:
-        # never place it on a map or judge it as if it were the sender's.
-        report['provider_server'] = {'ip': sender_ip, 'host': next((h.get('from_host') for h in hops if h.get('is_origin')), None)}
-        report['sender_ip'] = None
-    if network and sender_ip and not hidden:
+    if network:
         with ThreadPoolExecutor(max_workers=3) as pool:
             geo_f = pool.submit(geolocate_ip, sender_ip, instance_path)
             bl_f = pool.submit(_dnsbl, sender_ip)
@@ -297,14 +319,13 @@ def trace(raw: bytes, *, claimed_brand: str | None = None, instance_path: str | 
                 report['route'].append({'lat': r['lat'], 'lon': r['lon'], 'label': r.get('city') or r.get('country'),
                                         'kind': 'relay', 'ip': ip, 'isp': r.get('isp')})
 
-    geo = report['geo'] or {}
-    if 'precision' not in report:
-        if not geo:
-            report['precision'] = 'low'
-        elif geo.get('hosting') or geo.get('proxy'):
-            report['precision'] = 'medium'  # we see the server, not the person behind it
-        else:
-            report['precision'] = 'high'
+    geo = report.get('geo') or {}
+    if not geo:
+        report['precision'] = 'low'
+    elif geo.get('hosting') or geo.get('proxy'):
+        report['precision'] = 'medium'  # we see the server, not the person behind it
+    else:
+        report['precision'] = 'high'
     # Honest accuracy radius of an IP location (km)
     report['accuracy_km'] = (None if not geo else 50 if geo.get('mobile') else 5 if geo.get('hosting') else 15)
     report['network_type'] = (None if not geo else 'proxy' if geo.get('proxy') else 'hosting' if geo.get('hosting')
@@ -317,11 +338,11 @@ def trace(raw: bytes, *, claimed_brand: str | None = None, instance_path: str | 
         report['flags'].append('proxy')
     if report['blacklists']:
         report['flags'].append('blacklisted')
-    if report['device']['scripted']:
+    if (report.get('device') or {}).get('scripted'):
         report['flags'].append('scripted')
     if claimed_brand and geo.get('country_code') and geo['country_code'] != 'CM':
         report['flags'].append('foreign_for_local_brand')
-    offset = report['sender_utc_offset']
+    offset = report.get('sender_utc_offset')
     if offset and geo.get('utc_offset_s') is not None:
         sign = 1 if offset[0] == '+' else -1
         header_s = sign * (int(offset[1:3]) * 3600 + int(offset[3:5]) * 60)
@@ -331,6 +352,13 @@ def trace(raw: bytes, *, claimed_brand: str | None = None, instance_path: str | 
         report['flags'].append('long_delay')
     report['claimed_brand'] = claimed_brand
     return report
+
+
+def retrace(report: dict, *, instance_path: str | None = None) -> dict:
+    """Recompute a stored report from its saved hops (no raw email needed)."""
+    if not report.get('explicit') and str(report.get('found_by') or '').startswith('header '):
+        report['explicit'] = {'ip': report.get('sender_ip'), 'header': report['found_by'][7:]}
+    return locate(report, claimed_brand=report.get('claimed_brand'), instance_path=instance_path)
 
 
 def public_view(report: dict | None) -> dict | None:

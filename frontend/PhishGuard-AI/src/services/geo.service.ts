@@ -105,13 +105,14 @@ export interface OriginMap {
   traced: number
   hidden: number
   hidden_by: Array<{ provider: string; count: number }>
+  hidden_items?: Array<{ id: number; subject: string | null; verdict: string; provider: string | null; hop_count: number | null }>
   countries: Array<{ country: string; count: number }>
   generated_at: string
 }
 
 export interface MyOriginPoint {
   lat: number; lon: number; city: string | null; country: string | null; country_code: string | null
-  count: number; isp: string | null; accuracy_km: number | null
+  count: number; isp: string | null; accuracy_km: number | null; verdict?: string
   analyses: Array<{ id: number; subject: string | null; verdict: string; created_at: string | null }>
 }
 
@@ -119,7 +120,8 @@ export const geoService = {
   originMap: (days = 30, scope: 'threats' | 'all' = 'threats') =>
     apiFetch<OriginMap>(`/admin/origin-map?days=${days}&scope=${scope}`, { silent: true, timeoutMs: 25_000 }),
   investigate: (analysisId: number) => apiFetch<OriginInvestigation>(`/admin/analyses/${analysisId}/origin`),
-  myOrigins: (days = 90) => apiFetch<{ points: MyOriginPoint[]; hidden: number }>(`/user/origins?days=${days}`, { silent: true }),
+  myOrigins: (days = 90, scope: 'threats' | 'all' = 'threats') =>
+    apiFetch<{ points: MyOriginPoint[]; hidden: number }>(`/user/origins?days=${days}&scope=${scope}`, { silent: true }),
 }
 
 /** Flag as an HTML <img> string, for Leaflet tooltips (components use CountryFlag.vue) */

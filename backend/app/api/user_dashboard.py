@@ -406,8 +406,10 @@ def my_threat_origins():
     from app.services.email_origin import public_view
     since = datetime.utcnow() - timedelta(days=request.args.get('days', default=90, type=int))
     points, hidden = {}, 0
-    for a in (_user_analyses().filter(Analysis.created_at >= since, Analysis.verdict.in_(('phishing', 'suspicious')))
-              .order_by(Analysis.created_at.desc()).limit(500)):
+    query = _user_analyses().filter(Analysis.created_at >= since)
+    if request.args.get('scope', 'threats') != 'all':
+        query = query.filter(Analysis.verdict.in_(('phishing', 'suspicious')))
+    for a in query.order_by(Analysis.created_at.desc()).limit(500):
         view = public_view(_details(a).get('origin'))
         if not view:
             continue
@@ -419,6 +421,9 @@ def my_threat_origins():
                                     'country_code': view['country_code'], 'count': 0, 'isp': view['isp'],
                                     'accuracy_km': view['accuracy_km'], 'analyses': []})
         p['count'] += 1
+        rank = {'legitimate': 0, 'suspicious': 1, 'phishing': 2}
+        if rank.get(a.verdict, 0) >= rank.get(p.get('verdict'), -1):
+            p['verdict'] = a.verdict
         if len(p['analyses']) < 10:
             p['analyses'].append({'id': a.id, 'subject': a.subject, 'verdict': a.verdict,
                                   'created_at': a.created_at.isoformat() if a.created_at else None})

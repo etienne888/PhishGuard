@@ -9,6 +9,10 @@ const geo: Messages = {
   'geo.hiddenUnknown': 'The sending address of this email could not be found.',
   'geo.hiddenWhy': 'Webmail services (Gmail, Outlook…) protect their users’ IP address. All the other checks still apply.',
   'geo.via': 'Sent through {provider}',
+  'geo.scope.threats': 'Threats',
+  'geo.scope.all': 'All emails',
+  'geo.mine.empty': 'No located sender in this period. Connect a mailbox or check an email (.eml) to trace where it was sent from.',
+  'geo.radar.hiddenList': 'Sender hidden by a webmail — path still available',
   'geo.software': 'Sending software: {device}',
   'geo.hops': 'Went through {n} server(s) before reaching you',
   'geo.precision': 'Location precision',
@@ -116,6 +120,7 @@ const geo: Messages = {
   'geo.radar.liveFeed': 'Live feed',
   'geo.radar.topCountries': 'Source countries',
   'geo.radar.cleanMap': 'Hide / show the panels',
+  'event.admin_origin_viewed': 'E-mail origin viewed',
 }
 
 export default geo

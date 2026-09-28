@@ -235,6 +235,9 @@ const mapHeight = computed(() => (fullscreen.value ? '100vh' : props.height))
             <button v-for="d in [7, 30, 90]" :key="d" :class="{ on: days === d }" @click="days = d">{{ d }}{{ t('geo.radar.d') }}</button>
           </div>
           <div class="seg">
+            <button v-for="s in (['threats', 'all'] as const)" :key="s" :class="{ on: scope === s }" @click="scope = s">{{ t(`geo.scope.${s}`) }}</button>
+          </div>
+          <div class="seg">
             <button :class="{ on: mode === 'cluster' }" :title="t('geo.radar.cluster')" :aria-label="t('geo.radar.cluster')" @click="mode = 'cluster'"><AppIcon name="target" :size="13" /></button>
             <button :class="{ on: mode === 'heat' }" :title="t('geo.radar.heat')" :aria-label="t('geo.radar.heat')" @click="mode = 'heat'"><AppIcon name="zap" :size="13" /></button>
             <button :class="{ on: arcs }" :title="t('geo.radar.arcs')" :aria-label="t('geo.radar.arcs')" @click="arcs = !arcs"><AppIcon name="share" :size="13" /></button>
@@ -375,6 +378,20 @@ const mapHeight = computed(() => (fullscreen.value ? '100vh' : props.height))
         <p v-if="layer === 'origins' && origins?.hidden_by?.length" class="text-[10px] text-slate-500">
           <AppIcon name="eye" :size="11" class="inline" /> {{ t('geo.radar.hiddenBy', { list: origins.hidden_by.map((h) => `${h.provider} (${h.count})`).join(', ') }) }}
         </p>
+        <details v-if="layer === 'origins' && origins?.hidden_items?.length" class="hidden-list">
+          <summary class="cursor-pointer text-[11px] font-semibold text-slate-400">
+            <AppIcon name="eye" :size="11" class="inline" /> {{ t('geo.radar.hiddenList') }} ({{ origins.hidden_items.length }})
+          </summary>
+          <ul class="mt-1 max-h-40 space-y-0.5 overflow-auto">
+            <li v-for="h in origins.hidden_items" :key="h.id">
+              <button class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-[11px] text-slate-300 hover:bg-white/5" @click="investigate = h.id">
+                <span class="dot" :class="h.verdict === 'phishing' ? 'tone-danger' : h.verdict === 'suspicious' ? 'tone-warn' : 'tone-safe'"></span>
+                <span class="min-w-0 flex-1 truncate">{{ h.subject || t('ux.live.noSubject') }}</span>
+                <span class="text-[10px] text-slate-500">{{ h.provider }}</span>
+              </button>
+            </li>
+          </ul>
+        </details>
       </aside>
     </div>
 

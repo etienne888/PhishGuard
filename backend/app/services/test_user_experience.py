@@ -71,3 +71,30 @@ def test_auto_replies_are_ignored(monkeypatch):
     own['From'] = 'check@phishguard.cm'
     own.set_content('loop')
     assert inbound_service.process(own.as_bytes()) == 'ignored'
+
+
+# --- Origin tracing: the receiving provider must not hide the sender -------------------------
+def _eml(*received):
+    lines = ''.join(f'Received: {r}\r\n' for r in received)
+    return (lines + 'From: a@b.test\r\nSubject: x\r\nDate: Mon, 1 Sep 2026 10:00:00 +0000\r\n\r\nbody').encode()
+
+
+def test_origin_external_server_delivered_to_gmail_is_located():
+    from app.services.email_origin import trace
+    raw = _eml('by 2002:a05:6a10::1 with SMTP id x; Mon, 1 Sep 2026 10:00:02 +0000',
+               'from out197-184.us.a.dm.aliyun.com (out197-184.us.a.dm.aliyun.com. [47.90.197.184]) '
+               'by mx.google.com with ESMTPS id y; Mon, 1 Sep 2026 10:00:01 +0000')
+    r = trace(raw, network=False)
+    assert r['precision'] != 'hidden'
+    assert r['sender_ip'] == '47.90.197.184'
+    assert r['mailbox_provider'] == 'Gmail'
+
+
+def test_origin_sent_from_gmail_account_is_hidden():
+    from app.services.email_origin import trace
+    raw = _eml('by 2002:a05:6a10::1 with SMTP id x; Mon, 1 Sep 2026 10:00:02 +0000',
+               'from mail-sor-f69.google.com (mail-sor-f69.google.com. [209.85.220.69]) '
+               'by mx.google.com with SMTPS id y; Mon, 1 Sep 2026 10:00:01 +0000')
+    r = trace(raw, network=False)
+    assert r['precision'] == 'hidden' and r['sender_ip'] is None
+    assert r['provider_server']['ip'] == '209.85.220.69'

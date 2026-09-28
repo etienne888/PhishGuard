@@ -48,6 +48,8 @@ function active(to: string) {
   border-top: 1px solid rgba(148, 163, 184, 0.25);
 }
 :global(.dark) .tabbar { background: rgba(2, 6, 23, 0.92); border-color: #1e293b; }
+/* Phones only: this rule must live here, the scoped display:grid above overrides Tailwind's md:hidden */
+@media (min-width: 768px) { .tabbar { display: none; } }
 .tab { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; padding: 0.2rem 0; font-size: 0.66rem; font-weight: 600; color: #64748b; min-height: 44px; }
 .tab.on { color: #2563eb; }
 :global(.dark) .tab.on { color: #67e8f9; }

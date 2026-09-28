@@ -9,6 +9,10 @@ const geo: Messages = {
   'geo.hiddenUnknown': 'Impossible de retrouver l’adresse d’envoi de cet email.',
   'geo.hiddenWhy': 'Les messageries en ligne (Gmail, Outlook…) protègent l’adresse IP de leurs utilisateurs. Les autres vérifications restent valables.',
   'geo.via': 'Envoyé via {provider}',
+  'geo.scope.threats': 'Menaces',
+  'geo.scope.all': 'Tous les e-mails',
+  'geo.mine.empty': 'Aucun expéditeur localisé sur cette période. Connectez une boîte mail ou analysez un e-mail (.eml) pour retrouver d’où il a été envoyé.',
+  'geo.radar.hiddenList': 'Expéditeur masqué par un webmail — chemin disponible',
   'geo.software': 'Logiciel d’envoi : {device}',
   'geo.hops': 'A traversé {n} serveur(s) avant de vous arriver',
   'geo.precision': 'Précision de la localisation',
@@ -116,6 +120,7 @@ const geo: Messages = {
   'geo.radar.liveFeed': 'Flux en direct',
   'geo.radar.topCountries': 'Pays sources',
   'geo.radar.cleanMap': 'Masquer / afficher les panneaux',
+  'event.admin_origin_viewed': 'Consultation de l’origine d’un email',
 }
 
 export default geo
