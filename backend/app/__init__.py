@@ -30,7 +30,8 @@ def create_app():
         'postgresql+psycopg2://phishguard_user:phishguard123@localhost:5432/phishguard_db'
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SESSION_COOKIE_SECURE'] = False
+    # True in production (HTTPS): the session cookie is never sent over plain HTTP
+    app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
